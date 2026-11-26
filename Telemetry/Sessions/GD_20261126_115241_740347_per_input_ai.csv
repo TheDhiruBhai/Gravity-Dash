@@ -1,0 +1,4 @@
+input_index,elapsed_sec,level_index,input_source,player_action,drone_action,prior_entropy,posterior_entropy,entropy_reduction,confidence,top_cluster_confidence,astar_nodes,replan_latency_ms,hazards_avoided,drone_improvement_pct,gravity_flips_total,jetpack_overloads_total,gravity_predictability,movement_predictability,pattern_adaptation_pct
+1,0.019,1,PC_WASD,Idle,Pursue,7.9069,6.8239,1.0829,0.0275,0.2241,0,0.0000,0,18.67,0,0,0.0000,0.0500,4.00
+2,0.502,1,PC_WASD,Idle,EvadeCrateDodge,2.0495,2.0829,-0.0334,0.5465,0.9946,5,0.0220,0,58.93,0,0,0.0000,0.0500,4.00
+3,2.254,1,PC_WASD,Idle,EvadeCrateDodge,2.4287,2.4232,0.0055,0.4467,0.9967,1,0.0159,1,71.85,0,0,0.0000,0.0500,4.00

@@ -1,0 +1,12 @@
+input_index,elapsed_sec,level_index,input_source,player_action,drone_action,prior_entropy,posterior_entropy,entropy_reduction,confidence,top_cluster_confidence,astar_nodes,replan_latency_ms,hazards_avoided,drone_improvement_pct,gravity_flips_total,jetpack_overloads_total,gravity_predictability,movement_predictability,pattern_adaptation_pct
+1,0.054,1,PC_WASD,Idle,Pursue,3.6882,3.5866,0.1016,0.1835,0.8944,0,0.0000,0,37.52,0,0,0.0000,0.0500,4.00
+2,0.302,1,PC_WASD,Idle,EvadeCrateDodge,2.5726,2.5998,-0.0272,0.4426,0.9614,28,0.2660,0,53.81,0,0,0.0000,0.0500,4.00
+3,0.436,1,PC_WASD,Idle,Pursue,2.8271,2.8279,-0.0009,0.3789,0.9526,28,0.2660,0,42.07,0,0,0.0000,0.0500,4.00
+4,6.109,1,PC_WASD,Idle,Pursue,2.1265,2.1238,0.0028,0.5373,0.9971,2,0.0204,0,17.26,0,0,0.0000,0.0500,4.00
+5,7.473,1,PC_WASD,Idle,Patrol,2.1265,2.1238,0.0028,0.5373,0.9971,2,0.0204,0,17.26,0,0,0.0000,0.0500,4.00
+6,7.839,1,PC_Boost,Idle,Pursue,2.1238,2.1720,-0.0482,0.5348,0.9907,2,0.0204,0,17.26,0,0,0.0000,0.0500,4.00
+7,8.120,1,PC_Boost,Idle,EvadeCrateDodge,2.7277,2.7542,-0.0266,0.4030,0.9575,28,0.0598,0,2.00,0,0,0.0000,0.0500,4.00
+8,8.457,1,PC_Boost,Idle,Pursue,2.8558,2.8554,0.0004,0.3718,0.9530,28,0.0598,0,2.00,0,0,0.0000,0.0500,4.00
+9,12.635,1,PC_Boost,Idle,Pursue,2.1591,2.1594,-0.0003,0.5286,0.9970,1,0.0216,0,10.53,0,0,0.0000,0.0500,4.00
+10,14.000,1,PC_Boost,Idle,Patrol,2.1591,2.1594,-0.0003,0.5286,0.9970,1,0.0216,0,10.53,0,0,0.0000,0.0500,4.00
+11,14.365,1,PC_Boost,Idle,Pursue,2.1594,2.1999,-0.0405,0.5279,0.9908,1,0.0216,0,10.54,0,0,0.0000,0.0500,4.00
