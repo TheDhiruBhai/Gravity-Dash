@@ -7,33 +7,30 @@ using UnityEngine.UI;
 namespace GravityDrift
 {
     /// <summary>
-    /// Future-minimalist orbital station visual theme tokens & fallback runtime uGUI helpers.
-    /// The primary game UI lives as an editable uGUI + TextMeshPro Canvas hierarchy in the scene/prefabs
-    /// (built via Assets/Scripts/Editor/GravityDriftCanvasBuilder.cs). These helpers remain as a safe fallback
-    /// for bare scenes that lack serialized Canvas references.
-    /// Strict duotone palette (~90% Carbon/Slate Greys, ~10% Neon Sky Blue, #EF4444 danger).
+    /// Simple high-contrast Black & White UI theme tokens & fallback runtime uGUI helpers.
+    /// Plain black backgrounds (#000000), crisp white text (#FFFFFF), and simple plain borders.
     /// </summary>
     public static class GravityDriftUITheme
     {
-        // Carbon / Slate Greys (~90%)
-        public static readonly Color BackdropScrim  = new Color32(11, 14, 20, 244);   // #0B0E14
-        public static readonly Color PauseScrim     = new Color32(11, 14, 20, 195);   // #0B0E14
-        public static readonly Color PanelSurface   = new Color32(20, 25, 35, 248);   // #141923
-        public static readonly Color ControlSurface = new Color32(30, 38, 51, 255);   // #1E2633
-        public static readonly Color BorderHairline = new Color32(42, 52, 68, 255);   // #2A3444
-        public static readonly Color TextPrimary    = new Color32(226, 232, 240, 255);// #E2E8F0
-        public static readonly Color TextSecondary  = new Color32(138, 153, 173, 255);// #8A99AD
+        // Plain Black & White Theme
+        public static readonly Color BackdropScrim  = new Color32(0, 0, 0, 255);     // #000000
+        public static readonly Color PauseScrim     = new Color32(0, 0, 0, 210);     // #000000
+        public static readonly Color PanelSurface   = new Color32(0, 0, 0, 255);     // #000000
+        public static readonly Color ControlSurface = new Color32(0, 0, 0, 255);     // #000000
+        public static readonly Color BorderHairline = new Color32(140, 140, 140, 255);
+        public static readonly Color TextPrimary    = new Color32(255, 255, 255, 255); // #FFFFFF
+        public static readonly Color TextSecondary  = new Color32(210, 210, 210, 255);
 
-        // Neon Sky Blue Accent (~10%)
-        public static readonly Color AccentSkyBlue  = new Color32(56, 189, 248, 255); // #38BDF8
-        public static readonly Color AccentCyan     = new Color32(0, 229, 255, 255);  // #00E5FF
-        public static readonly Color AccentTintFill = new Color32(17, 37, 54, 255);   // Deep Sky-Tinted Dark Slate
+        // Selected / Active Control Highlight (Plain B&W)
+        public static readonly Color AccentSkyBlue  = new Color32(255, 255, 255, 255); // #FFFFFF
+        public static readonly Color AccentCyan     = new Color32(255, 255, 255, 255); // #FFFFFF
+        public static readonly Color AccentTintFill = new Color32(24, 24, 24, 255);    // Subtle dark fill + crisp white border
 
-        // Functional Danger / Status Exceptions
-        public static readonly Color DangerRed      = new Color32(239, 68, 68, 255);  // #EF4444
-        public static readonly Color DangerTintFill = new Color32(52, 20, 24, 255);
-        public static readonly Color SuccessMint    = new Color32(34, 197, 94, 255);  // #22C55E
-        public static readonly Color WarningAmber   = new Color32(245, 158, 11, 255); // #F59E0B
+        // Plain Neutral Fallbacks
+        public static readonly Color DangerRed      = new Color32(255, 255, 255, 255);
+        public static readonly Color DangerTintFill = new Color32(0, 0, 0, 255);
+        public static readonly Color SuccessMint    = new Color32(255, 255, 255, 255);
+        public static readonly Color WarningAmber   = new Color32(255, 255, 255, 255);
 
         private static TMP_FontAsset cachedDisplayFont;
         private static TMP_FontAsset cachedBodyFont;
@@ -272,9 +269,9 @@ namespace GravityDrift
             var btn = rt.gameObject.AddComponent<UnityEngine.UI.Button>();
             var cb = btn.colors;
             cb.normalColor = Color.white;
-            cb.highlightedColor = new Color(1.22f, 1.32f, 1.45f, 1f);
-            cb.selectedColor = primaryAccent ? new Color(1.25f, 1.35f, 1.50f, 1f) : new Color(0.85f, 1.15f, 1.45f, 1f);
-            cb.pressedColor = new Color(0.75f, 0.85f, 0.95f, 1f);
+            cb.highlightedColor = new Color(1.25f, 1.25f, 1.25f, 1f);
+            cb.selectedColor = new Color(1.25f, 1.25f, 1.25f, 1f);
+            cb.pressedColor = new Color(0.75f, 0.75f, 0.75f, 1f);
             btn.colors = cb;
 
             var tmp = CreateText(rt, "Label", label, 15f, primaryAccent ? AccentSkyBlue : TextPrimary, true, TextAlignmentOptions.Center);

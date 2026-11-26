@@ -68,7 +68,7 @@ namespace GravityDrift
             if (SystemAPI.HasSingleton<LevelObjectiveState>())
             {
                 var objState = SystemAPI.GetSingleton<LevelObjectiveState>();
-                if (objState.IsRespawning || objState.IsRunOver || objState.IsRunCompleted || InputHelper.IsInputFrozen)
+                if (objState.IsRespawning || objState.IsRunOver || objState.IsRunCompleted || objState.LevelStartGraceTimer > 0f || InputHelper.IsInputFrozen)
                 {
                     var frozenGravEntity = SystemAPI.GetSingletonEntity<GravityState>();
                     var frozenGrav = SystemAPI.GetComponent<GravityState>(frozenGravEntity);

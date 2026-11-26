@@ -38,6 +38,23 @@ namespace GravityDrift.Editor
             EditorApplication.isPlaying = true;
         }
 
+        [MenuItem("GravityDrift/Verify RunOver -> SessionReport")]
+        public static void VerifyRunOverSessionReport()
+        {
+            if (EditorApplication.isPlaying)
+            {
+                EditorApplication.isPlaying = false;
+                return;
+            }
+
+            SessionState.SetString("GravityDrift_LastRunOverReportVerify", string.Empty);
+            SessionState.SetInt(PhaseKey, 100);
+            SessionState.SetInt(WaitKey, 5);
+            EditorApplication.update -= OnEditorUpdate;
+            EditorApplication.update += OnEditorUpdate;
+            EditorApplication.isPlaying = true;
+        }
+
         private static void OnEditorUpdate()
         {
             int phase = SessionState.GetInt(PhaseKey, 0);
@@ -162,6 +179,87 @@ namespace GravityDrift.Editor
             else if (phase == 14)
             {
                 ui.ReturnToMainMenu();
+                SessionState.SetInt(PhaseKey, 0);
+                EditorApplication.update -= OnEditorUpdate;
+                EditorApplication.isPlaying = false;
+            }
+            else if (phase == 100)
+            {
+                ui.SetConfiguredLives(3);
+                ui.StartNewGameFromMenu();
+                SessionState.SetInt(PhaseKey, 101);
+                SessionState.SetInt(WaitKey, 5);
+            }
+            else if (phase == 101)
+            {
+                SimulateStep(em, "PC_WASD", true, 0, new float2(1f, 0f), false, PlayerActionType.GravityFlip, adaptUp: true);
+                SimulateStep(em, "DualSense_Stick", true, 2, new float2(-1f, 0.2f), true, PlayerActionType.JetpackBoost, adaptUp: false);
+                SimulateLifeLoss(em);
+                SimulateLifeLoss(em);
+                SimulateLifeLoss(em);
+                SessionState.SetInt(PhaseKey, 102);
+                SessionState.SetInt(WaitKey, 6);
+            }
+            else if (phase == 102)
+            {
+                var runOverCard = GameObject.Find("GravityDrift_UI_Canvas/RunOverCard");
+                var reportBtn = GameObject.Find("GravityDrift_UI_Canvas/RunOverCard/RunOverReportBtn")?.GetComponent<UnityEngine.UI.Button>();
+                bool initialRunOver = (ui.currentState == UIState.RunOver) && (runOverCard != null && runOverCard.activeInHierarchy);
+                SessionState.SetBool("GD_RO_Step1", initialRunOver);
+                if (reportBtn != null) reportBtn.onClick.Invoke();
+                SessionState.SetInt(PhaseKey, 103);
+                SessionState.SetInt(WaitKey, 10);
+            }
+            else if (phase == 103)
+            {
+                var runOverCard = GameObject.Find("GravityDrift_UI_Canvas/RunOverCard");
+                var reportCard = GameObject.Find("GravityDrift_UI_Canvas/SessionReportCard");
+                var kpiTxt = GameObject.Find("GravityDrift_UI_Canvas/SessionReportCard/ReportKpiStrip/ReportKpiText")?.GetComponent<TMPro.TextMeshProUGUI>()?.text ?? "";
+                var lvlImg = GameObject.Find("GravityDrift_UI_Canvas/SessionReportCard/GraphsRow/LevelsGraphCard/PlotRawImage")?.GetComponent<UnityEngine.UI.RawImage>();
+                var aiImg = GameObject.Find("GravityDrift_UI_Canvas/SessionReportCard/GraphsRow/AiInputGraphCard/PlotRawImage")?.GetComponent<UnityEngine.UI.RawImage>();
+                var deathImg = GameObject.Find("GravityDrift_UI_Canvas/SessionReportCard/GraphsRow/DeathRateGraphCard/PlotRawImage")?.GetComponent<UnityEngine.UI.RawImage>();
+
+                bool stayedReport10Frames = (ui.currentState == UIState.SessionReport)
+                    && (reportCard != null && reportCard.activeInHierarchy)
+                    && (runOverCard == null || !runOverCard.activeInHierarchy);
+                bool chartsAndDataReady = lvlImg != null && lvlImg.texture != null
+                    && aiImg != null && aiImg.texture != null
+                    && deathImg != null && deathImg.texture != null
+                    && !string.IsNullOrEmpty(kpiTxt) && !kpiTxt.Contains("NO LIVE SESSION DATA");
+
+                SessionState.SetBool("GD_RO_Step2", stayedReport10Frames);
+                SessionState.SetBool("GD_RO_Charts", chartsAndDataReady);
+                SessionState.SetString("GD_RO_KPI", kpiTxt);
+
+                string reportPng = Path.Combine(Application.dataPath, "../Telemetry/UI_SessionReport_Preview.png");
+                ScreenCapture.CaptureScreenshot(reportPng);
+
+                SessionState.SetInt(PhaseKey, 104);
+                SessionState.SetInt(WaitKey, 2);
+            }
+            else if (phase == 104)
+            {
+                var backBtn = GameObject.Find("GravityDrift_UI_Canvas/SessionReportCard/ReportFooterRow/ReportBackBtn")?.GetComponent<UnityEngine.UI.Button>();
+                if (backBtn != null) backBtn.onClick.Invoke();
+                SessionState.SetInt(PhaseKey, 105);
+                SessionState.SetInt(WaitKey, 4);
+            }
+            else if (phase == 105)
+            {
+                var runOverCard = GameObject.Find("GravityDrift_UI_Canvas/RunOverCard");
+                var reportCard = GameObject.Find("GravityDrift_UI_Canvas/SessionReportCard");
+                bool returnedRunOver = (ui.currentState == UIState.RunOver)
+                    && (runOverCard != null && runOverCard.activeInHierarchy)
+                    && (reportCard == null || !reportCard.activeInHierarchy);
+
+                bool step1 = SessionState.GetBool("GD_RO_Step1", false);
+                bool step2 = SessionState.GetBool("GD_RO_Step2", false);
+                bool charts = SessionState.GetBool("GD_RO_Charts", false);
+                string kpi = SessionState.GetString("GD_RO_KPI", "");
+                string summary = $"[RUNOVER REPORT VERIFY] RunOverShown={step1} | StayedInReport10Frames={step2} | ChartsAndDataReady={charts} | BackToRunOver={returnedRunOver} | KPI='{kpi}'";
+                SessionState.SetString("GravityDrift_LastRunOverReportVerify", summary);
+                Debug.Log(summary);
+
                 SessionState.SetInt(PhaseKey, 0);
                 EditorApplication.update -= OnEditorUpdate;
                 EditorApplication.isPlaying = false;

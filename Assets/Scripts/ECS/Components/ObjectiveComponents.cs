@@ -50,6 +50,7 @@ namespace GravityDrift
         // Roguelite Lives & 20-Level Run Progression
         public int MaxLives;
         public int LivesRemaining;
+        public float LevelStartGraceTimer;
         public float RespawnGraceTimer;
         public bool IsRespawning;
         public bool PendingDeathSequence;

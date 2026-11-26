@@ -97,7 +97,7 @@ namespace GravityDrift
             var em = world.EntityManager;
 
             var sb = new StringBuilder();
-            sb.AppendLine("<color=#8A99AD>π_t(s) ~ P(o_t|s, a_p, a_d) · Σ T(s|s', a_d, g_t)π_{t-1}(s')</color>");
+            sb.AppendLine("pi_t(s) ~ P(o_t|s, a_p, a_d) * Sum T(s|s', a_d, g_t)pi_{t-1}(s')");
 
             var droneQuery = em.CreateEntityQuery(
                 ComponentType.ReadOnly<DroneState>(),
@@ -117,8 +117,8 @@ namespace GravityDrift
                 var bel = beliefs[i];
                 var tf = transforms[i];
 
-                sb.AppendLine($"<b>D{i + 1}</b> [a_d=<color=#38BDF8>{st.ActiveAction}</color> | a_p={bel.LastPlayerAction}] ({tf.Position.x:F1},{tf.Position.y:F1})");
-                sb.AppendLine($"  π_c={bel.TopClusterConfidence * 100f:F1}% | H={bel.Entropy:F2}b | MAP=({bel.EstimatedTargetCell.x},{bel.EstimatedTargetCell.y}) | A*={tel.ReplanLatencyMs:F2}ms N={tel.NodesExpanded} Hz={tel.HazardCellsAvoided}");
+                sb.AppendLine($"<b>D{i + 1}</b> [a_d={st.ActiveAction} | a_p={bel.LastPlayerAction}] ({tf.Position.x:F1},{tf.Position.y:F1})");
+                sb.AppendLine($"  pi_c={bel.TopClusterConfidence * 100f:F1}% | H={bel.Entropy:F2}b | MAP=({bel.EstimatedTargetCell.x},{bel.EstimatedTargetCell.y}) | A*={tel.ReplanLatencyMs:F2}ms N={tel.NodesExpanded} Hz={tel.HazardCellsAvoided}");
             }
             droneQuery.Dispose();
 
@@ -127,7 +127,7 @@ namespace GravityDrift
             {
                 using var lArr = learnQuery.ToComponentDataArray<DroneLearningState>(Allocator.Temp);
                 var l = lArr[0];
-                sb.Append($"<color=#8A99AD>Learn: Esc={l.TotalEscapesCompleted} · Imp={l.EscapeImpulseMultiplier:F2}x · Skill={l.CrateDodgeSkill * 100f:F0}% · Δ=+{l.DroneImprovementPct:F1}%</color>");
+                sb.Append($"Learn: Esc={l.TotalEscapesCompleted} | Imp={l.EscapeImpulseMultiplier:F2}x | Skill={l.CrateDodgeSkill * 100f:F0}% | Delta=+{l.DroneImprovementPct:F1}%");
             }
             learnQuery.Dispose();
 

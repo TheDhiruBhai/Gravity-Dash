@@ -113,7 +113,7 @@ namespace GravityDrift.Editor
             var fadeRaycaster = fadeTempGo.GetComponent<GraphicRaycaster>();
             if (fadeRaycaster != null) Object.DestroyImmediate(fadeRaycaster);
 
-            RectTransform fadeTempRt = CreatePanel(fadeTempGo.transform, "FadeOverlay", sprites.solidWhite, new Color(11f / 255f, 14f / 255f, 20f / 255f, 0f), raycastTarget: false);
+            RectTransform fadeTempRt = CreatePanel(fadeTempGo.transform, "FadeOverlay", sprites.solidWhite, new Color(0f, 0f, 0f, 0f), raycastTarget: false);
             GravityDriftUITheme.StretchFill(fadeTempRt);
             fadeTempGo.SetActive(false);
 
@@ -389,9 +389,9 @@ namespace GravityDrift.Editor
             var btn = rt.gameObject.AddComponent<UnityEngine.UI.Button>();
             var cb = btn.colors;
             cb.normalColor = Color.white;
-            cb.highlightedColor = new Color(1.22f, 1.32f, 1.45f, 1f);
-            cb.selectedColor = primaryAccent ? new Color(1.25f, 1.35f, 1.50f, 1f) : new Color(0.85f, 1.15f, 1.45f, 1f);
-            cb.pressedColor = new Color(0.75f, 0.85f, 0.95f, 1f);
+            cb.highlightedColor = new Color(1.25f, 1.25f, 1.25f, 1f);
+            cb.selectedColor = new Color(1.25f, 1.25f, 1.25f, 1f);
+            cb.pressedColor = new Color(0.75f, 0.75f, 0.75f, 1f);
             btn.colors = cb;
 
             var tmp = CreateText(rt, "Label", label, 15f, primaryAccent ? GravityDriftUITheme.AccentSkyBlue : GravityDriftUITheme.TextPrimary, fonts, isDisplay: true, align: TextAlignmentOptions.Center, raycastTarget: false);
@@ -556,7 +556,7 @@ namespace GravityDrift.Editor
             refs.randomizeSeedBtn.gameObject.GetComponent<LayoutElement>().preferredWidth = 140f;
 
             var lvlRow = CreateHorizontalRow(card, "LevelRow", 38f, 10f);
-            refs.levelStepperText = CreateText(lvlRow, "LevelLabel", "STARTING LEVEL  <color=#38BDF8>1</color> / 20", 14f, GravityDriftUITheme.TextPrimary, fonts, true);
+            refs.levelStepperText = CreateText(lvlRow, "LevelLabel", "STARTING LEVEL  1 / 20", 14f, GravityDriftUITheme.TextPrimary, fonts, true);
             refs.levelStepperText.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1f;
             refs.levelMinusBtn = CreateButton(lvlRow, "LevelMinus", "-", sprites, fonts, false, 36f);
             refs.levelMinusBtn.gameObject.GetComponent<LayoutElement>().preferredWidth = 44f;
@@ -787,16 +787,16 @@ namespace GravityDrift.Editor
             var graphsRow = CreateHorizontalRow(card, "GraphsRow", 590f, 16f);
             graphsRow.gameObject.GetComponent<LayoutElement>().flexibleHeight = 1f;
 
-            BuildReportGraphCard(graphsRow, "LevelsGraphCard", "1. LEVELS PLAYED & PROGRESSION",
-                "<color=#22C55E>■</color> CLEARED   <color=#EF4444>■</color> DEATH   <color=#00E5FF>●</color> TIME (S)   <color=#F59E0B>●</color> COMPLEXITY",
+            BuildReportGraphCard(graphsRow, "LevelsGraphCard", "FIG 1. LEVELS PLAYED & PROGRESSION",
+                "Bars: Clear (Green) / Death (Red) | Lines: Time s (Blue), Complexity (Orange)\nY-Axis: Room Time (s) & Complexity %  |  X-Axis: Attempt #",
                 sprites, fonts, out refs.levelsChartImage, out refs.levelsChartFooterText);
 
-            BuildReportGraphCard(graphsRow, "AiInputGraphCard", "2. AI IMPROVEMENT PER INPUT",
-                "<color=#38BDF8>●</color> POSTERIOR π   <color=#F59E0B>●</color> ENTROPY PRECISION   <color=#22C55E>●</color> AI IMP %",
+            BuildReportGraphCard(graphsRow, "AiInputGraphCard", "FIG 2. AI IMPROVEMENT PER INPUT",
+                "Blue: Posterior pi | Orange: Entropy Precision | Green: AI Imp % | Black: Pat %\nY-Axis: Metric Score (0-100%)  |  X-Axis: Input Event #",
                 sprites, fonts, out refs.aiChartImage, out refs.aiChartFooterText);
 
-            BuildReportGraphCard(graphsRow, "DeathRateGraphCard", "3. DEATH RATE & IMPROVEMENT",
-                "<color=#EF4444>●</color> DEATH RATE %   <color=#38BDF8>●</color> AI IMP %   <color=#22C55E>●</color> DODGE SKILL %",
+            BuildReportGraphCard(graphsRow, "DeathRateGraphCard", "FIG 3. DEATH RATE & IMPROVEMENT",
+                "Red: Death Rate % | Blue: AI Imp % | Green: Crate-Dodge Skill %\nY-Axis: Rate / Skill (0-100%)  |  X-Axis: Level Attempt #",
                 sprites, fonts, out refs.deathChartImage, out refs.deathChartFooterText);
 
             var footRow = CreateHorizontalRow(card, "ReportFooterRow", 44f, 12f);
@@ -833,10 +833,10 @@ namespace GravityDrift.Editor
             vlg.childForceExpandWidth = true;
             vlg.childForceExpandHeight = false;
 
-            CreateText(panel, "CardTitle", titleStr, 15.5f, GravityDriftUITheme.AccentSkyBlue, fonts, true)
+            CreateText(panel, "CardTitle", titleStr, 15.5f, GravityDriftUITheme.TextPrimary, fonts, true)
                 .gameObject.AddComponent<LayoutElement>().preferredHeight = 22f;
-            CreateText(panel, "CardLegend", legendStr, 11.5f, GravityDriftUITheme.TextSecondary, fonts)
-                .gameObject.AddComponent<LayoutElement>().preferredHeight = 18f;
+            CreateText(panel, "CardLegend", legendStr, 11f, GravityDriftUITheme.TextSecondary, fonts)
+                .gameObject.AddComponent<LayoutElement>().preferredHeight = 32f;
 
             var imgGo = new GameObject("PlotRawImage", typeof(RectTransform), typeof(RawImage));
             imgGo.transform.SetParent(panel, false);
@@ -847,7 +847,7 @@ namespace GravityDrift.Editor
             rawImg.color = Color.white;
             rawImg.raycastTarget = false;
 
-            footerTxt = CreateText(panel, "CardFooter", "Waiting for gameplay samples...", 12.5f, GravityDriftUITheme.TextPrimary, fonts);
+            footerTxt = CreateText(panel, "CardFooter", "Samples recorded: 0", 12f, GravityDriftUITheme.TextPrimary, fonts);
             footerTxt.gameObject.AddComponent<LayoutElement>().preferredHeight = 36f;
         }
 
@@ -877,7 +877,7 @@ namespace GravityDrift.Editor
             vlg.childForceExpandWidth = true;
             vlg.childForceExpandHeight = false;
 
-            refs.runOverTitleText = CreateText(card, "RunOverTitle", "RUN TERMINATED", 32f, GravityDriftUITheme.DangerRed, fonts, true, TextAlignmentOptions.Center);
+            refs.runOverTitleText = CreateText(card, "RunOverTitle", "RUN TERMINATED", 32f, GravityDriftUITheme.TextPrimary, fonts, true, TextAlignmentOptions.Center);
             refs.runOverTitleText.gameObject.AddComponent<LayoutElement>().preferredHeight = 42f;
             refs.runOverSubText = CreateText(card, "RunOverSub", "0 / 5 LIVES REMAINING", 14f, GravityDriftUITheme.TextSecondary, fonts, true, TextAlignmentOptions.Center);
             refs.runOverSubText.gameObject.AddComponent<LayoutElement>().preferredHeight = 20f;
@@ -897,18 +897,11 @@ namespace GravityDrift.Editor
 
         private struct HudRefs
         {
-            public TextMeshProUGUI levelBadgeText;
-            public TextMeshProUGUI livesBadgeText;
-            public TextMeshProUGUI switchStatusText;
-            public TextMeshProUGUI airlockStatusText;
-            public GameObject coresRowObj;
-            public TextMeshProUGUI coresValueText;
-            public TextMeshProUGUI timerActionText;
-            public GameObject alertBannerObj;
-            public TextMeshProUGUI alertBannerText;
-            public TextMeshProUGUI droneHeaderText;
-            public TextMeshProUGUI[] droneRowTexts;
-            public TextMeshProUGUI droneLearnText;
+            public TextMeshProUGUI sectorStatusText;
+            public TextMeshProUGUI reqSwitchText;
+            public TextMeshProUGUI reqCoresText;
+            public TextMeshProUGUI reqAirlockText;
+            public TextMeshProUGUI optDronesText;
             public TextMeshProUGUI jetpackLabelText;
             public TextMeshProUGUI jetpackPctText;
             public RectTransform jetpackFillRt;
@@ -926,81 +919,40 @@ namespace GravityDrift.Editor
             var hudRt = hudGo.GetComponent<RectTransform>();
             GravityDriftUITheme.StretchFill(hudRt);
 
-            // 1. TOP-LEFT PANEL
-            var tl = CreatePanel(hudRt, "TopLeftPanel", sprites.panelBox, Color.white);
-            tl.anchorMin = new Vector2(0f, 1f);
-            tl.anchorMax = new Vector2(0f, 1f);
-            tl.pivot = new Vector2(0f, 1f);
-            tl.anchoredPosition = new Vector2(20f, -18f);
-            tl.sizeDelta = new Vector2(468f, 198f);
+            // 1. UNBOXED PLAIN WHITE OBJECTIVES TEXT (Top-Left, no background panel or card)
+            var objOverlay = new GameObject("ObjectivesOverlay", typeof(RectTransform));
+            objOverlay.transform.SetParent(hudRt, false);
+            var objRt = objOverlay.GetComponent<RectTransform>();
+            objRt.anchorMin = new Vector2(0f, 1f);
+            objRt.anchorMax = new Vector2(0f, 1f);
+            objRt.pivot = new Vector2(0f, 1f);
+            objRt.anchoredPosition = new Vector2(24f, -18f);
+            objRt.sizeDelta = new Vector2(960f, 132f);
 
-            var tlVlg = tl.gameObject.AddComponent<VerticalLayoutGroup>();
-            tlVlg.padding = new RectOffset(16, 16, 12, 12);
-            tlVlg.spacing = 4f;
-            tlVlg.childControlWidth = true;
-            tlVlg.childControlHeight = true;
-            tlVlg.childForceExpandWidth = true;
-            tlVlg.childForceExpandHeight = false;
+            var objVlg = objOverlay.AddComponent<VerticalLayoutGroup>();
+            objVlg.spacing = 4f;
+            objVlg.childControlWidth = true;
+            objVlg.childControlHeight = true;
+            objVlg.childForceExpandWidth = true;
+            objVlg.childForceExpandHeight = false;
 
-            refs.levelBadgeText = CreateText(tl, "LevelBadge", "LVL 01 / 20  ·  SEED #101", 16.5f, GravityDriftUITheme.AccentSkyBlue, fonts, true);
-            refs.levelBadgeText.gameObject.AddComponent<LayoutElement>().preferredHeight = 23f;
+            refs.sectorStatusText = CreateText(objRt, "SectorStatusText", "LEVEL 01/20  |  LIVES 5/5  |  SEED #101", 15f, Color.white, fonts, isDisplay: false, align: TextAlignmentOptions.Left, raycastTarget: false);
+            refs.sectorStatusText.fontStyle = FontStyles.Bold;
+            refs.sectorStatusText.gameObject.AddComponent<LayoutElement>().preferredHeight = 22f;
 
-            refs.livesBadgeText = CreateText(tl, "LivesBadge", "LIVES  5 / 5", 13.5f, GravityDriftUITheme.SuccessMint, fonts, true);
-            refs.livesBadgeText.gameObject.AddComponent<LayoutElement>().preferredHeight = 19f;
+            refs.reqSwitchText = CreateText(objRt, "ReqSwitchText", "Required: Flip the switch [PENDING]", 14f, Color.white, fonts, isDisplay: false, align: TextAlignmentOptions.Left, raycastTarget: false);
+            refs.reqSwitchText.gameObject.AddComponent<LayoutElement>().preferredHeight = 20f;
 
-            refs.switchStatusText = CreateText(tl, "SwitchStatus", "SWITCH  LOCKED", 13f, GravityDriftUITheme.TextSecondary, fonts);
-            refs.switchStatusText.gameObject.AddComponent<LayoutElement>().preferredHeight = 19f;
+            refs.reqCoresText = CreateText(objRt, "ReqCoresText", "Required: Collect all orbs/cores (0/0)", 14f, Color.white, fonts, isDisplay: false, align: TextAlignmentOptions.Left, raycastTarget: false);
+            refs.reqCoresText.gameObject.AddComponent<LayoutElement>().preferredHeight = 20f;
 
-            refs.airlockStatusText = CreateText(tl, "AirlockStatus", "AIRLOCK  LOCKED", 13f, GravityDriftUITheme.TextSecondary, fonts);
-            refs.airlockStatusText.gameObject.AddComponent<LayoutElement>().preferredHeight = 19f;
+            refs.reqAirlockText = CreateText(objRt, "ReqAirlockText", "Required: Reach the exit airlock [LOCKED]", 14f, Color.white, fonts, isDisplay: false, align: TextAlignmentOptions.Left, raycastTarget: false);
+            refs.reqAirlockText.gameObject.AddComponent<LayoutElement>().preferredHeight = 20f;
 
-            refs.coresRowObj = new GameObject("CoresRow", typeof(RectTransform));
-            refs.coresRowObj.transform.SetParent(tl, false);
-            refs.coresRowObj.AddComponent<LayoutElement>().preferredHeight = 19f;
-            refs.coresValueText = CreateText(refs.coresRowObj.transform, "CoresText", "CORES  0 / 0", 13f, GravityDriftUITheme.TextPrimary, fonts);
-            GravityDriftUITheme.StretchFill(refs.coresValueText.rectTransform);
+            refs.optDronesText = CreateText(objRt, "OptDronesText", "Optional: Defeat drones (0/0)", 14f, Color.white, fonts, isDisplay: false, align: TextAlignmentOptions.Left, raycastTarget: false);
+            refs.optDronesText.gameObject.AddComponent<LayoutElement>().preferredHeight = 20f;
 
-            refs.timerActionText = CreateText(tl, "TimerAction", "TIME  0.0s  ·  IDLE", 13f, GravityDriftUITheme.TextSecondary, fonts);
-            refs.timerActionText.gameObject.AddComponent<LayoutElement>().preferredHeight = 19f;
-
-            var alertRt = CreatePanel(tl, "AlertBanner", sprites.dangerBox, Color.white);
-            alertRt.gameObject.AddComponent<LayoutElement>().preferredHeight = 26f;
-            refs.alertBannerObj = alertRt.gameObject;
-            refs.alertBannerText = CreateText(alertRt, "AlertText", "HAZARD SHOCK! -25% FUEL", 13f, GravityDriftUITheme.DangerRed, fonts, true, TextAlignmentOptions.Center);
-            GravityDriftUITheme.StretchFill(refs.alertBannerText.rectTransform, 6f, 2f);
-            refs.alertBannerObj.SetActive(false);
-
-            // 2. TOP-RIGHT PANEL
-            var tr = CreatePanel(hudRt, "TopRightPanel", sprites.panelBox, Color.white);
-            tr.anchorMin = new Vector2(1f, 1f);
-            tr.anchorMax = new Vector2(1f, 1f);
-            tr.pivot = new Vector2(1f, 1f);
-            tr.anchoredPosition = new Vector2(-20f, -18f);
-            tr.sizeDelta = new Vector2(365f, 194f);
-
-            var trVlg = tr.gameObject.AddComponent<VerticalLayoutGroup>();
-            trVlg.padding = new RectOffset(16, 16, 12, 12);
-            trVlg.spacing = 4f;
-            trVlg.childControlWidth = true;
-            trVlg.childControlHeight = true;
-            trVlg.childForceExpandWidth = true;
-            trVlg.childForceExpandHeight = false;
-
-            refs.droneHeaderText = CreateText(tr, "DroneHeader", "DRONE THREAT MONITOR", 14f, GravityDriftUITheme.AccentSkyBlue, fonts, true);
-            refs.droneHeaderText.gameObject.AddComponent<LayoutElement>().preferredHeight = 22f;
-
-            refs.droneRowTexts = new TextMeshProUGUI[5];
-            for (int d = 0; d < 5; d++)
-            {
-                var dr = CreateText(tr, $"DroneRow_{d + 1}", $"D{d + 1}  PATROL", 12.5f, GravityDriftUITheme.TextPrimary, fonts);
-                dr.gameObject.AddComponent<LayoutElement>().preferredHeight = 18f;
-                refs.droneRowTexts[d] = dr;
-            }
-
-            refs.droneLearnText = CreateText(tr, "DroneLearn", "ESCAPES 0  ·  DODGE 0%  ·  IMP +0%", 11.5f, GravityDriftUITheme.TextSecondary, fonts);
-            refs.droneLearnText.gameObject.AddComponent<LayoutElement>().preferredHeight = 18f;
-
-            // 3. BOTTOM TACTICAL STRIP
+            // 2. BOTTOM HUD STRIP ONLY: Jetpack Fuel Bar + Static Gravity Vector Arrow & Charges
             var bot = CreatePanel(hudRt, "BottomTacticalStrip", sprites.panelBox, Color.white);
             bot.anchorMin = new Vector2(0.5f, 0f);
             bot.anchorMax = new Vector2(0.5f, 0f);
@@ -1026,14 +978,14 @@ namespace GravityDrift.Editor
             fuelVlg.childForceExpandHeight = false;
 
             var fuelTop = CreateHorizontalRow(fuelCol, "FuelHeader", 20f, 8f);
-            refs.jetpackLabelText = CreateText(fuelTop, "JetLabel", "JETPACK FUEL", 13f, GravityDriftUITheme.TextPrimary, fonts, true);
+            refs.jetpackLabelText = CreateText(fuelTop, "JetLabel", "JETPACK FUEL", 13f, Color.white, fonts, true);
             refs.jetpackLabelText.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1f;
-            refs.jetpackPctText = CreateText(fuelTop, "JetPct", "100%", 14f, GravityDriftUITheme.AccentSkyBlue, fonts, true, TextAlignmentOptions.Right);
+            refs.jetpackPctText = CreateText(fuelTop, "JetPct", "100%", 14f, Color.white, fonts, true, TextAlignmentOptions.Right);
             refs.jetpackPctText.gameObject.AddComponent<LayoutElement>().preferredWidth = 65f;
 
             var barBg = CreatePanel(fuelCol, "FuelBarBg", sprites.controlBox, Color.white);
             barBg.gameObject.AddComponent<LayoutElement>().preferredHeight = 14f;
-            refs.jetpackFillRt = CreatePanel(barBg, "FuelBarFill", sprites.solidWhite, GravityDriftUITheme.AccentSkyBlue);
+            refs.jetpackFillRt = CreatePanel(barBg, "FuelBarFill", sprites.solidWhite, Color.white);
             GravityDriftUITheme.StretchFill(refs.jetpackFillRt, 2f, 2f);
             refs.jetpackFillImg = refs.jetpackFillRt.GetComponent<UnityEngine.UI.Image>();
 
@@ -1049,13 +1001,13 @@ namespace GravityDrift.Editor
             ahLe.preferredWidth = 42f;
             ahLe.preferredHeight = 42f;
 
-            refs.gravityArrowRt = CreatePanel(arrowHolder, "GravityArrow", sprites.gravityArrow, GravityDriftUITheme.AccentSkyBlue);
+            refs.gravityArrowRt = CreatePanel(arrowHolder, "GravityArrow", sprites.gravityArrow, Color.white);
             refs.gravityArrowRt.anchorMin = new Vector2(0.5f, 0.5f);
             refs.gravityArrowRt.anchorMax = new Vector2(0.5f, 0.5f);
             refs.gravityArrowRt.sizeDelta = new Vector2(26f, 26f);
             refs.gravityArrowImg = refs.gravityArrowRt.GetComponent<UnityEngine.UI.Image>();
 
-            refs.gravityLabelText = CreateText(gravCol, "GravText", "GRAV: DOWN\nCHARGES 3/3", 12f, GravityDriftUITheme.TextPrimary, fonts, true);
+            refs.gravityLabelText = CreateText(gravCol, "GravText", "GRAV: DOWN\nCHARGES 3/3", 12f, Color.white, fonts, true);
             refs.gravityLabelText.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1f;
 
             return hudGo;
@@ -1072,6 +1024,17 @@ namespace GravityDrift.Editor
             if (uiMgr != null)
             {
                 var so = new SerializedObject(uiMgr);
+                so.FindProperty("mainMenuScrimColor").colorValue = GravityDriftUITheme.BackdropScrim;
+                so.FindProperty("pauseScrimColor").colorValue = GravityDriftUITheme.PauseScrim;
+                so.FindProperty("colorCodeDynamicHudStates").boolValue = false;
+                so.FindProperty("livesHealthyColor").colorValue = Color.white;
+                so.FindProperty("livesWarningColor").colorValue = Color.white;
+                so.FindProperty("livesCriticalColor").colorValue = Color.white;
+                so.FindProperty("accentFlashColor").colorValue = Color.white;
+                so.FindProperty("dangerColor").colorValue = Color.white;
+                so.FindProperty("overloadDimColor").colorValue = new Color32(120, 120, 120, 255);
+                so.FindProperty("runOverVictoryColor").colorValue = Color.white;
+                so.FindProperty("runOverDefeatColor").colorValue = Color.white;
                 so.FindProperty("activeSelectionSprite").objectReferenceValue = sprites.accentBox;
                 so.FindProperty("inactiveSelectionSprite").objectReferenceValue = sprites.controlBox;
 
@@ -1146,26 +1109,12 @@ namespace GravityDrift.Editor
                 so.FindProperty("toggleDisplayBtn").objectReferenceValue = FindChildComp<UnityEngine.UI.Button>(u, "SettingsMenuCard/DisplayRow/ToggleDispBtn");
                 so.FindProperty("settingsBackBtn").objectReferenceValue = FindChildComp<UnityEngine.UI.Button>(u, "SettingsMenuCard/SettingsBackBtn");
 
-                // Gameplay HUD
-                so.FindProperty("levelBadgeText").objectReferenceValue = FindChildComp<TextMeshProUGUI>(u, "GameplayHUD/TopLeftPanel/LevelBadge");
-                so.FindProperty("livesBadgeText").objectReferenceValue = FindChildComp<TextMeshProUGUI>(u, "GameplayHUD/TopLeftPanel/LivesBadge");
-                so.FindProperty("switchStatusText").objectReferenceValue = FindChildComp<TextMeshProUGUI>(u, "GameplayHUD/TopLeftPanel/SwitchStatus");
-                so.FindProperty("airlockStatusText").objectReferenceValue = FindChildComp<TextMeshProUGUI>(u, "GameplayHUD/TopLeftPanel/AirlockStatus");
-                so.FindProperty("coresRowObj").objectReferenceValue = FindChildGo(u, "GameplayHUD/TopLeftPanel/CoresRow");
-                so.FindProperty("coresValueText").objectReferenceValue = FindChildComp<TextMeshProUGUI>(u, "GameplayHUD/TopLeftPanel/CoresRow/CoresText");
-                so.FindProperty("timerActionText").objectReferenceValue = FindChildComp<TextMeshProUGUI>(u, "GameplayHUD/TopLeftPanel/TimerAction");
-                so.FindProperty("alertBannerObj").objectReferenceValue = FindChildGo(u, "GameplayHUD/TopLeftPanel/AlertBanner");
-                so.FindProperty("alertBannerText").objectReferenceValue = FindChildComp<TextMeshProUGUI>(u, "GameplayHUD/TopLeftPanel/AlertBanner/AlertText");
-                so.FindProperty("droneHeaderText").objectReferenceValue = FindChildComp<TextMeshProUGUI>(u, "GameplayHUD/TopRightPanel/DroneHeader");
-
-                var droneRowsProp = so.FindProperty("droneRowTexts");
-                droneRowsProp.arraySize = 5;
-                for (int i = 0; i < 5; i++)
-                {
-                    droneRowsProp.GetArrayElementAtIndex(i).objectReferenceValue =
-                        FindChildComp<TextMeshProUGUI>(u, $"GameplayHUD/TopRightPanel/DroneRow_{i + 1}");
-                }
-                so.FindProperty("droneLearnText").objectReferenceValue = FindChildComp<TextMeshProUGUI>(u, "GameplayHUD/TopRightPanel/DroneLearn");
+                // Simplified Gameplay HUD (Unboxed Line-by-Line Objectives + Bottom Jetpack & Gravity Strip)
+                so.FindProperty("sectorStatusText").objectReferenceValue = FindChildComp<TextMeshProUGUI>(u, "GameplayHUD/ObjectivesOverlay/SectorStatusText");
+                so.FindProperty("reqSwitchText").objectReferenceValue = FindChildComp<TextMeshProUGUI>(u, "GameplayHUD/ObjectivesOverlay/ReqSwitchText");
+                so.FindProperty("reqCoresText").objectReferenceValue = FindChildComp<TextMeshProUGUI>(u, "GameplayHUD/ObjectivesOverlay/ReqCoresText");
+                so.FindProperty("reqAirlockText").objectReferenceValue = FindChildComp<TextMeshProUGUI>(u, "GameplayHUD/ObjectivesOverlay/ReqAirlockText");
+                so.FindProperty("optDronesText").objectReferenceValue = FindChildComp<TextMeshProUGUI>(u, "GameplayHUD/ObjectivesOverlay/OptDronesText");
 
                 so.FindProperty("jetpackLabelText").objectReferenceValue = FindChildComp<TextMeshProUGUI>(u, "GameplayHUD/BottomTacticalStrip/JetpackCol/FuelHeader/JetLabel");
                 so.FindProperty("jetpackPctText").objectReferenceValue = FindChildComp<TextMeshProUGUI>(u, "GameplayHUD/BottomTacticalStrip/JetpackCol/FuelHeader/JetPct");

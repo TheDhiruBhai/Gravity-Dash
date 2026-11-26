@@ -33,29 +33,28 @@ namespace GravityDrift
 
         [Header("Editable State Styling (Preserves Inspector Edits)")]
         [SerializeField] private bool manageScrimColor = true;
-        [SerializeField] private Color mainMenuScrimColor = new Color32(11, 14, 20, 244);
-        [SerializeField] private Color pauseScrimColor = new Color32(11, 14, 20, 195);
+        [SerializeField] private Color mainMenuScrimColor = new Color32(0, 0, 0, 255);
+        [SerializeField] private Color pauseScrimColor = new Color32(0, 0, 0, 210);
         [SerializeField] private bool swapSelectedButtonSprites = true;
         [SerializeField] private Sprite activeSelectionSprite;
         [SerializeField] private Sprite inactiveSelectionSprite;
-        [SerializeField] private bool colorCodeDynamicHudStates = true;
-        [SerializeField] private Color livesHealthyColor = new Color32(34, 197, 94, 255);
-        [SerializeField] private Color livesWarningColor = new Color32(245, 158, 11, 255);
-        [SerializeField] private Color livesCriticalColor = new Color32(239, 68, 68, 255);
-        [SerializeField] private Color accentFlashColor = new Color32(0, 229, 255, 255);
-        [SerializeField] private Color dangerColor = new Color32(239, 68, 68, 255);
-        [SerializeField] private Color overloadDimColor = new Color32(140, 28, 28, 255);
-        [SerializeField] private Color runOverVictoryColor = new Color32(34, 197, 94, 255);
-        [SerializeField] private Color runOverDefeatColor = new Color32(239, 68, 68, 255);
+        [SerializeField] private bool colorCodeDynamicHudStates = false;
+        [SerializeField] private Color livesHealthyColor = Color.white;
+        [SerializeField] private Color livesWarningColor = Color.white;
+        [SerializeField] private Color livesCriticalColor = Color.white;
+        [SerializeField] private Color accentFlashColor = Color.white;
+        [SerializeField] private Color dangerColor = Color.white;
+        [SerializeField] private Color overloadDimColor = new Color32(120, 120, 120, 255);
+        [SerializeField] private Color runOverVictoryColor = Color.white;
+        [SerializeField] private Color runOverDefeatColor = Color.white;
 
         private string seedInputString = "101";
         private int selectedLevel = 1;
         private float lastEscToggleTime = -10f;
         private bool listenersWired = false;
-        private Color cachedJetpackFillColor = new Color32(56, 189, 248, 255);
-        private Color cachedJetpackPctColor = new Color32(56, 189, 248, 255);
-        private Color cachedGravityArrowColor = new Color32(56, 189, 248, 255);
-        private Color cachedLivesBadgeColor = new Color32(34, 197, 94, 255);
+        private Color cachedJetpackFillColor = Color.white;
+        private Color cachedJetpackPctColor = Color.white;
+        private Color cachedGravityArrowColor = Color.white;
 
         [Header("Canvas & Screen Root Containers")]
         [SerializeField] private Canvas uiCanvas;
@@ -134,20 +133,11 @@ namespace GravityDrift
         [SerializeField] private UnityEngine.UI.Button settingsBackBtn;
 
         [Header("Gameplay HUD Controls")]
-        [SerializeField] private TextMeshProUGUI levelBadgeText;
-        [SerializeField] private TextMeshProUGUI livesBadgeText;
-        [SerializeField] private TextMeshProUGUI switchStatusText;
-        [SerializeField] private TextMeshProUGUI airlockStatusText;
-        [SerializeField] private GameObject coresRowObj;
-        [SerializeField] private TextMeshProUGUI coresValueText;
-        [SerializeField] private TextMeshProUGUI timerActionText;
-        [SerializeField] private GameObject alertBannerObj;
-        [SerializeField] private TextMeshProUGUI alertBannerText;
-
-        [SerializeField] private TextMeshProUGUI droneHeaderText;
-        [SerializeField] private List<TextMeshProUGUI> droneRowTexts = new List<TextMeshProUGUI>();
-        [SerializeField] private TextMeshProUGUI droneLearnText;
-
+        [SerializeField] private TextMeshProUGUI sectorStatusText;
+        [SerializeField] private TextMeshProUGUI reqSwitchText;
+        [SerializeField] private TextMeshProUGUI reqCoresText;
+        [SerializeField] private TextMeshProUGUI reqAirlockText;
+        [SerializeField] private TextMeshProUGUI optDronesText;
         [SerializeField] private TextMeshProUGUI jetpackLabelText;
         [SerializeField] private TextMeshProUGUI jetpackPctText;
         [SerializeField] private RectTransform jetpackFillRt;
@@ -155,8 +145,6 @@ namespace GravityDrift
         [SerializeField] private RectTransform gravityArrowRt;
         [SerializeField] private UnityEngine.UI.Image gravityArrowImg;
         [SerializeField] private TextMeshProUGUI gravityLabelText;
-        private float arrowBounceTimer = 0f;
-        private Vector2 arrowBounceDir = Vector2.zero;
 
         private void Awake()
         {
@@ -200,17 +188,16 @@ namespace GravityDrift
             if (jetpackFillImg != null) cachedJetpackFillColor = jetpackFillImg.color;
             if (jetpackPctText != null) cachedJetpackPctColor = jetpackPctText.color;
             if (gravityArrowImg != null) cachedGravityArrowColor = gravityArrowImg.color;
-            if (livesBadgeText != null) cachedLivesBadgeColor = livesBadgeText.color;
         }
 
         private void EnsureReportTextures()
         {
             if (levelsChartTex == null)
-                levelsChartTex = new Texture2D(500, 320, TextureFormat.RGBA32, false) { filterMode = FilterMode.Bilinear, hideFlags = HideFlags.HideAndDontSave };
+                levelsChartTex = new Texture2D(500, 450, TextureFormat.RGBA32, false) { filterMode = FilterMode.Bilinear, hideFlags = HideFlags.HideAndDontSave };
             if (aiChartTex == null)
-                aiChartTex = new Texture2D(500, 320, TextureFormat.RGBA32, false) { filterMode = FilterMode.Bilinear, hideFlags = HideFlags.HideAndDontSave };
+                aiChartTex = new Texture2D(500, 450, TextureFormat.RGBA32, false) { filterMode = FilterMode.Bilinear, hideFlags = HideFlags.HideAndDontSave };
             if (deathChartTex == null)
-                deathChartTex = new Texture2D(500, 320, TextureFormat.RGBA32, false) { filterMode = FilterMode.Bilinear, hideFlags = HideFlags.HideAndDontSave };
+                deathChartTex = new Texture2D(500, 450, TextureFormat.RGBA32, false) { filterMode = FilterMode.Bilinear, hideFlags = HideFlags.HideAndDontSave };
 
             if (levelsChartImage != null) levelsChartImage.texture = levelsChartTex;
             if (aiChartImage != null) aiChartImage.texture = aiChartTex;
@@ -225,7 +212,6 @@ namespace GravityDrift
             if (hapticsSlider != null) hapticsSlider.SetValueWithoutNotify(HapticFeedbackSystem.HapticsIntensity);
             if (rStickToggle != null) rStickToggle.SetIsOnWithoutNotify(InputHelper.enableRightStickGravity);
             if (deadzoneSlider != null) deadzoneSlider.SetValueWithoutNotify(InputHelper.stickDeadzone);
-            if (alertBannerObj != null) alertBannerObj.SetActive(false);
         }
 
         private void AttachButtonAudio(UnityEngine.UI.Button btn)
@@ -505,7 +491,7 @@ namespace GravityDrift
                 {
                     SetUIState(menuReturnState);
                 }
-                else if (currentState == UIState.Gameplay || currentState == UIState.PauseMenu)
+                else if (currentState == UIState.Gameplay || currentState == UIState.PauseMenu || currentState == UIState.RunOver)
                 {
                     OpenSessionReport(currentState);
                 }
@@ -546,11 +532,20 @@ namespace GravityDrift
         public void OpenSessionReport(UIState returnTo)
         {
             menuReturnState = returnTo;
+            if (returnTo == UIState.RunOver)
+            {
+                SessionReportRecorder.Instance?.CheckAndRecordTagDeaths();
+                SessionReportRecorder.Instance?.ArchiveRunEndIfPending("RunOver");
+            }
             SetUIState(UIState.SessionReport);
         }
 
         public void OpenRunOverScreen(bool isVictory)
         {
+            if (currentState == UIState.SessionReport && menuReturnState == UIState.RunOver)
+            {
+                return;
+            }
             lastRunVictory = isVictory;
             menuReturnState = UIState.RunOver;
             if (isVictory) SoundManager.Instance?.PlayLevelClearedFanfare();
@@ -651,8 +646,18 @@ namespace GravityDrift
             if (mainMenuRoot != null) mainMenuRoot.SetActive(currentState == UIState.MainMenu);
             if (pauseMenuRoot != null) pauseMenuRoot.SetActive(currentState == UIState.PauseMenu);
             if (settingsMenuRoot != null) settingsMenuRoot.SetActive(currentState == UIState.SettingsMenu);
-            if (sessionReportRoot != null) sessionReportRoot.SetActive(currentState == UIState.SessionReport);
-            if (runOverRoot != null) runOverRoot.SetActive(currentState == UIState.RunOver);
+            if (sessionReportRoot != null)
+            {
+                bool showReport = currentState == UIState.SessionReport;
+                sessionReportRoot.SetActive(showReport);
+                if (showReport) sessionReportRoot.transform.SetAsLastSibling();
+            }
+            if (runOverRoot != null)
+            {
+                bool showRunOver = currentState == UIState.RunOver;
+                runOverRoot.SetActive(showRunOver);
+                if (showRunOver) runOverRoot.transform.SetAsLastSibling();
+            }
             if (gameplayHudRoot != null) gameplayHudRoot.SetActive(currentState == UIState.Gameplay);
 
             // Keep arena player capsule hidden behind the MainMenu so screen stays clean
@@ -743,7 +748,7 @@ namespace GravityDrift
             randomizeSeedBtn.gameObject.GetComponent<LayoutElement>().preferredWidth = 140f;
 
             var lvlRow = CreateHorizontalRow(card, "LevelRow", 38f, 10f);
-            levelStepperText = GravityDriftUITheme.CreateText(lvlRow, "LevelLabel", $"STARTING LEVEL  <color=#38BDF8>{selectedLevel}</color> / 20", 14f, GravityDriftUITheme.TextPrimary, true);
+            levelStepperText = GravityDriftUITheme.CreateText(lvlRow, "LevelLabel", $"STARTING LEVEL  {selectedLevel} / 20", 14f, GravityDriftUITheme.TextPrimary, true);
             levelStepperText.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1f;
 
             levelMinusBtn = GravityDriftUITheme.CreateButton(lvlRow, "LevelMinus", "-", false, 36f);
@@ -802,7 +807,7 @@ namespace GravityDrift
         {
             if (levelStepperText != null)
             {
-                levelStepperText.text = $"STARTING LEVEL  <color=#38BDF8>{selectedLevel}</color> / 20";
+                levelStepperText.text = $"STARTING LEVEL  {selectedLevel} / 20";
             }
             RefreshLivesButtons();
         }
@@ -943,9 +948,9 @@ namespace GravityDrift
             if (controllerStatusText != null)
             {
                 string conn = InputHelper.IsDualSenseConnected()
-                    ? "<color=#38BDF8>DUALSENSE CONNECTED (TOUCHPAD + HAPTICS)</color>"
-                    : "<color=#8A99AD>KEYBOARD READY (CONNECT DUALSENSE VIA USB/BT)</color>";
-                controllerStatusText.text = $"INPUT: {conn}  ·  SCHEME: <color=#E2E8F0>{InputHelper.activeScheme}</color>";
+                    ? "DUALSENSE CONNECTED (TOUCHPAD + HAPTICS)"
+                    : "KEYBOARD READY (CONNECT DUALSENSE VIA USB/BT)";
+                controllerStatusText.text = $"INPUT: {conn}  |  SCHEME: {InputHelper.activeScheme}";
             }
 
             // Highlight active shader & control scheme buttons
@@ -993,16 +998,16 @@ namespace GravityDrift
 
             EnsureReportTextures();
 
-            CreateReportGraphCard(graphsRow, "LevelsGraphCard", "1. LEVELS PLAYED & PROGRESSION",
-                "<color=#22C55E>■</color> CLEARED   <color=#EF4444>■</color> DEATH   <color=#00E5FF>●</color> TIME (S)   <color=#F59E0B>●</color> COMPLEXITY",
+            CreateReportGraphCard(graphsRow, "LevelsGraphCard", "FIG 1. LEVELS PLAYED & PROGRESSION",
+                "Bars: Clear (Green) / Death (Red) | Lines: Time s (Blue), Complexity (Orange)\nY-Axis: Room Time (s) & Complexity %  |  X-Axis: Attempt #",
                 levelsChartTex, out levelsChartImage, out levelsChartFooterText);
 
-            CreateReportGraphCard(graphsRow, "AiInputGraphCard", "2. AI IMPROVEMENT PER INPUT",
-                "<color=#38BDF8>●</color> POSTERIOR π   <color=#F59E0B>●</color> ENTROPY PRECISION   <color=#22C55E>●</color> AI IMP %",
+            CreateReportGraphCard(graphsRow, "AiInputGraphCard", "FIG 2. AI IMPROVEMENT PER INPUT",
+                "Blue: Posterior pi | Orange: Entropy Precision | Green: AI Imp % | Black: Pat %\nY-Axis: Metric Score (0-100%)  |  X-Axis: Input Event #",
                 aiChartTex, out aiChartImage, out aiChartFooterText);
 
-            CreateReportGraphCard(graphsRow, "DeathRateGraphCard", "3. DEATH RATE & IMPROVEMENT",
-                "<color=#EF4444>●</color> DEATH RATE %   <color=#38BDF8>●</color> AI IMP %   <color=#22C55E>●</color> DODGE SKILL %",
+            CreateReportGraphCard(graphsRow, "DeathRateGraphCard", "FIG 3. DEATH RATE & IMPROVEMENT",
+                "Red: Death Rate % | Blue: AI Imp % | Green: Crate-Dodge Skill %\nY-Axis: Rate / Skill (0-100%)  |  X-Axis: Level Attempt #",
                 deathChartTex, out deathChartImage, out deathChartFooterText);
 
             var footRow = CreateHorizontalRow(card, "ReportFooterRow", 44f, 12f);
@@ -1039,8 +1044,8 @@ namespace GravityDrift
             var title = GravityDriftUITheme.CreateText(panel, "CardTitle", titleStr, 15.5f, GravityDriftUITheme.AccentSkyBlue, true);
             title.gameObject.AddComponent<LayoutElement>().preferredHeight = 22f;
 
-            var leg = GravityDriftUITheme.CreateText(panel, "CardLegend", legendStr, 11.5f, GravityDriftUITheme.TextSecondary);
-            leg.gameObject.AddComponent<LayoutElement>().preferredHeight = 18f;
+            var leg = GravityDriftUITheme.CreateText(panel, "CardLegend", legendStr, 11f, GravityDriftUITheme.TextSecondary);
+            leg.gameObject.AddComponent<LayoutElement>().preferredHeight = 32f;
 
             var imgGo = new GameObject("PlotRawImage", typeof(RectTransform), typeof(RawImage));
             imgGo.transform.SetParent(panel, false);
@@ -1051,14 +1056,16 @@ namespace GravityDrift
             rawImg.texture = tex;
             rawImg.color = Color.white;
 
-            footerTxt = GravityDriftUITheme.CreateText(panel, "CardFooter", "Waiting for gameplay samples...", 12.5f, GravityDriftUITheme.TextPrimary);
+            footerTxt = GravityDriftUITheme.CreateText(panel, "CardFooter", "Samples recorded: 0", 12f, GravityDriftUITheme.TextPrimary);
             footerTxt.gameObject.AddComponent<LayoutElement>().preferredHeight = 36f;
         }
 
         public void RefreshSessionReportPanel()
         {
+            EnsureReportTextures();
             var rec = SessionReportRecorder.Instance;
-            var levelRows = (rec != null) ? rec.GetLevelRecordsSnapshot(includeCurrentInProgress: true) : new List<SessionLevelRecord>();
+            bool includeInProgress = menuReturnState != UIState.RunOver && menuReturnState != UIState.MainMenu;
+            var levelRows = (rec != null) ? rec.GetLevelRecordsSnapshot(includeCurrentInProgress: includeInProgress) : new List<SessionLevelRecord>();
             IReadOnlyList<PerInputAIEvent> inputEvts = (rec != null) ? rec.InputEvents : System.Array.Empty<PerInputAIEvent>();
 
             SessionGraphRenderer.RenderLevelsChart(levelsChartTex, levelRows);
@@ -1068,10 +1075,10 @@ namespace GravityDrift
             if (rec == null || (levelRows.Count == 0 && inputEvts.Count == 0))
             {
                 if (reportKpiText != null)
-                    reportKpiText.text = "NO LIVE SESSION DATA YET  ·  START A MISSION AND PLAY TO RECORD PER-LEVEL & PER-INPUT TELEMETRY";
-                if (levelsChartFooterText != null) levelsChartFooterText.text = "No level attempts logged yet.";
-                if (aiChartFooterText != null) aiChartFooterText.text = "No player/AI input events logged yet.";
-                if (deathChartFooterText != null) deathChartFooterText.text = "No death or AI progression samples yet.";
+                    reportKpiText.text = "NO LIVE SESSION DATA YET (N = 0 LEVELS, 0 INPUTS)  |  START A MISSION TO RECORD TELEMETRY";
+                if (levelsChartFooterText != null) levelsChartFooterText.text = "X: Attempt Index | Y: Time (s) & Complexity % | Recorded Samples: n = 0 attempts";
+                if (aiChartFooterText != null) aiChartFooterText.text = "X: Input Event # | Y: Confidence / Precision / Imp (%) | Recorded Samples: n = 0 inputs";
+                if (deathChartFooterText != null) deathChartFooterText.text = "X: Level Attempt # | Y: Death Rate / Skill (%) | Recorded Samples: n = 0 levels";
                 return;
             }
 
@@ -1108,13 +1115,13 @@ namespace GravityDrift
             if (reportKpiText != null)
             {
                 reportKpiText.text =
-                    $"SESSION <color=#38BDF8>{rec.CurrentSessionId}</color>  ·  SECTORS: <color=#E2E8F0>{distinctLevels.Count}/20</color> ({cleared} CLEARED)  ·  " +
-                    $"LIVES: <color=#22C55E>{latestLivesRem}/{latestMaxLives}</color>  ·  DEATHS: <color=#EF4444>{latestDeathRate:F1}%</color>  ·  PAT ADAPT: <color=#F59E0B>{latestPat:F0}%</color>  ·  DS={dsCount}/PC={pcCount}";
+                    $"SESSION {rec.CurrentSessionId}  |  SECTORS: {distinctLevels.Count}/20 ({cleared} CLEARED)  |  " +
+                    $"LIVES: {latestLivesRem}/{latestMaxLives}  |  DEATHS: {latestDeathRate:F1}%  |  PAT ADAPT: {latestPat:F0}%  |  SAMPLES: {levelRows.Count} LVL / {inputEvts.Count} IN";
             }
 
             if (levelsChartFooterText != null)
             {
-                levelsChartFooterText.text = $"Attempts: {levelRows.Count}  ·  Cleared: {cleared}/20  ·  Mean Room Time: {avgTime:F1}s";
+                levelsChartFooterText.text = $"X: Attempt # (n = {levelRows.Count} attempts)  |  Y: Time (s) & Complexity  |  Cleared: {cleared}/20, Mean: {avgTime:F1}s";
             }
 
             if (aiChartFooterText != null)
@@ -1123,17 +1130,17 @@ namespace GravityDrift
                 {
                     var first = inputEvts[0];
                     var last = inputEvts[inputEvts.Count - 1];
-                    aiChartFooterText.text = $"Inputs: {inputEvts.Count}  ·  π: {first.top_cluster_confidence * 100f:F0}%→{last.top_cluster_confidence * 100f:F0}%  ·  PatAdapt: {last.pattern_adaptation_pct:F0}%";
+                    aiChartFooterText.text = $"X: Input Event # (n = {inputEvts.Count} inputs)  |  Y: 0-100%  |  pi: {first.top_cluster_confidence * 100f:F0}%->{last.top_cluster_confidence * 100f:F0}%, Pat: {last.pattern_adaptation_pct:F0}%";
                 }
                 else
                 {
-                    aiChartFooterText.text = "Awaiting movement / gravity flip / boost inputs...";
+                    aiChartFooterText.text = "X: Input Event # (n = 0 inputs)  |  Y: 0-100%  |  Awaiting player input samples...";
                 }
             }
 
             if (deathChartFooterText != null)
             {
-                deathChartFooterText.text = $"Death Rate: {latestDeathRate:F1}%  ·  AI Imp: {latestImp:F1}%  ·  Dodge Skill: {latestDodge:F0}%  ·  Lives: {latestLivesRem}/{latestMaxLives}";
+                deathChartFooterText.text = $"X: Level # (n = {levelRows.Count} levels)  |  Y: 0-100%  |  Death: {latestDeathRate:F1}%, AI Imp: {latestImp:F1}%, Dodge: {latestDodge:F0}%";
             }
 
             if (reportSaveStatusText != null)
@@ -1141,6 +1148,7 @@ namespace GravityDrift
                 string pathNote = string.IsNullOrEmpty(rec.LastSavedProjectDir) ? "Telemetry/Sessions/" : rec.LastSavedProjectDir;
                 reportSaveStatusText.text = $"{rec.LastSavedStatus}  [{pathNote}]";
             }
+            Canvas.ForceUpdateCanvases();
         }
 
         private void BuildRunOverUI(Transform parent)
@@ -1214,9 +1222,9 @@ namespace GravityDrift
             if (runOverStatsText != null)
             {
                 runOverStatsText.text =
-                    $"<b>CLEARED:</b> {cleared}  ·  <b>ATTEMPTS:</b> {rows}  ·  <b>DEATH RATE:</b> <color=#EF4444>{latestDeathRate:F1}%</color>\n" +
-                    $"<b>DRONE AI IMP:</b> <color=#38BDF8>{latestImp:F1}%</color>  ·  <b>PATTERN ADAPT:</b> <color=#F59E0B>{latestPat:F0}%</color>\n" +
-                    $"<color=#8A99AD>{(rec != null ? rec.LastSavedStatus : "Session telemetry archived.")}</color>";
+                    $"<b>CLEARED:</b> {cleared}  |  <b>ATTEMPTS:</b> {rows}  |  <b>DEATH RATE:</b> {latestDeathRate:F1}%\n" +
+                    $"<b>DRONE AI IMP:</b> {latestImp:F1}%  |  <b>PATTERN ADAPT:</b> {latestPat:F0}%\n" +
+                    $"{(rec != null ? rec.LastSavedStatus : "Session telemetry archived.")}";
             }
         }
 
@@ -1228,81 +1236,45 @@ namespace GravityDrift
             GravityDriftUITheme.StretchFill(hudRt);
             gameplayHudRoot = hudGo;
 
-            // 1. TOP-LEFT PANEL: Level/20, Lives, Seed, Switch, Airlock, Cores, Timer, Conditional Alert
-            var tl = GravityDriftUITheme.CreatePanel(hudRt, "TopLeftPanel", GravityDriftUITheme.GetPanelSprite(), Color.white);
-            tl.anchorMin = new Vector2(0f, 1f);
-            tl.anchorMax = new Vector2(0f, 1f);
-            tl.pivot = new Vector2(0f, 1f);
-            tl.anchoredPosition = new Vector2(20f, -18f);
-            tl.sizeDelta = new Vector2(420f, 198f);
+            // 1. UNBOXED TOP-LEFT OBJECTIVES OVERLAY (Plain white text directly on screen, zero boxes/cards)
+            var objOverlay = new GameObject("ObjectivesOverlay", typeof(RectTransform));
+            objOverlay.transform.SetParent(hudRt, false);
+            var objRt = objOverlay.GetComponent<RectTransform>();
+            objRt.anchorMin = new Vector2(0f, 1f);
+            objRt.anchorMax = new Vector2(0f, 1f);
+            objRt.pivot = new Vector2(0f, 1f);
+            objRt.anchoredPosition = new Vector2(24f, -18f);
+            objRt.sizeDelta = new Vector2(960f, 132f);
 
-            var tlVlg = tl.gameObject.AddComponent<VerticalLayoutGroup>();
-            tlVlg.padding = new RectOffset(16, 16, 12, 12);
-            tlVlg.spacing = 4f;
-            tlVlg.childControlWidth = true;
-            tlVlg.childControlHeight = true;
-            tlVlg.childForceExpandWidth = true;
-            tlVlg.childForceExpandHeight = false;
+            var objVlg = objOverlay.AddComponent<VerticalLayoutGroup>();
+            objVlg.spacing = 4f;
+            objVlg.childControlWidth = true;
+            objVlg.childControlHeight = true;
+            objVlg.childForceExpandWidth = true;
+            objVlg.childForceExpandHeight = false;
 
-            levelBadgeText = GravityDriftUITheme.CreateText(tl, "LevelBadge", "LVL 01 / 20  ·  SEED #101", 16.5f, GravityDriftUITheme.AccentSkyBlue, true);
-            levelBadgeText.gameObject.AddComponent<LayoutElement>().preferredHeight = 23f;
+            sectorStatusText = GravityDriftUITheme.CreateText(objRt, "SectorStatusText", "LEVEL 01/20  |  LIVES 5/5  |  SEED #101", 15f, Color.white, false);
+            sectorStatusText.fontStyle = FontStyles.Bold;
+            sectorStatusText.raycastTarget = false;
+            sectorStatusText.gameObject.AddComponent<LayoutElement>().preferredHeight = 22f;
 
-            livesBadgeText = GravityDriftUITheme.CreateText(tl, "LivesBadge", "LIVES  5 / 5", 13.5f, GravityDriftUITheme.SuccessMint, true);
-            livesBadgeText.gameObject.AddComponent<LayoutElement>().preferredHeight = 19f;
+            reqSwitchText = GravityDriftUITheme.CreateText(objRt, "ReqSwitchText", "Required: Flip the switch [PENDING]", 14f, Color.white, false);
+            reqSwitchText.raycastTarget = false;
+            reqSwitchText.gameObject.AddComponent<LayoutElement>().preferredHeight = 20f;
 
-            switchStatusText = GravityDriftUITheme.CreateText(tl, "SwitchStatus", "SWITCH  LOCKED", 13f, GravityDriftUITheme.TextSecondary);
-            switchStatusText.gameObject.AddComponent<LayoutElement>().preferredHeight = 19f;
+            reqCoresText = GravityDriftUITheme.CreateText(objRt, "ReqCoresText", "Required: Collect all orbs/cores (0/0)", 14f, Color.white, false);
+            reqCoresText.raycastTarget = false;
+            reqCoresText.gameObject.AddComponent<LayoutElement>().preferredHeight = 20f;
 
-            airlockStatusText = GravityDriftUITheme.CreateText(tl, "AirlockStatus", "AIRLOCK  LOCKED", 13f, GravityDriftUITheme.TextSecondary);
-            airlockStatusText.gameObject.AddComponent<LayoutElement>().preferredHeight = 19f;
+            reqAirlockText = GravityDriftUITheme.CreateText(objRt, "ReqAirlockText", "Required: Reach the exit airlock [LOCKED]", 14f, Color.white, false);
+            reqAirlockText.raycastTarget = false;
+            reqAirlockText.gameObject.AddComponent<LayoutElement>().preferredHeight = 20f;
 
-            coresRowObj = new GameObject("CoresRow", typeof(RectTransform));
-            coresRowObj.transform.SetParent(tl, false);
-            coresRowObj.AddComponent<LayoutElement>().preferredHeight = 19f;
-            coresValueText = GravityDriftUITheme.CreateText(coresRowObj.transform, "CoresText", "CORES  0 / 0", 13f, GravityDriftUITheme.TextPrimary);
-            GravityDriftUITheme.StretchFill(coresValueText.rectTransform);
+            optDronesText = GravityDriftUITheme.CreateText(objRt, "OptDronesText", "Optional: Defeat drones (0/0)", 14f, Color.white, false);
+            optDronesText.raycastTarget = false;
+            optDronesText.gameObject.AddComponent<LayoutElement>().preferredHeight = 20f;
 
-            timerActionText = GravityDriftUITheme.CreateText(tl, "TimerAction", "TIME  0.0s  ·  IDLE", 13f, GravityDriftUITheme.TextSecondary);
-            timerActionText.gameObject.AddComponent<LayoutElement>().preferredHeight = 19f;
-
-            var alertRt = GravityDriftUITheme.CreatePanel(tl, "AlertBanner", GravityDriftUITheme.GetDangerSprite(), Color.white);
-            alertRt.gameObject.AddComponent<LayoutElement>().preferredHeight = 26f;
-            alertBannerObj = alertRt.gameObject;
-            alertBannerText = GravityDriftUITheme.CreateText(alertRt, "AlertText", "HAZARD SHOCK! -25% FUEL", 13f, GravityDriftUITheme.DangerRed, true, TextAlignmentOptions.Center);
-            GravityDriftUITheme.StretchFill(alertBannerText.rectTransform, 6f, 2f);
-            alertBannerObj.SetActive(false);
-
-            // 2. TOP-RIGHT PANEL: Drone Threat Monitor & Learning Summary
-            var tr = GravityDriftUITheme.CreatePanel(hudRt, "TopRightPanel", GravityDriftUITheme.GetPanelSprite(), Color.white);
-            tr.anchorMin = new Vector2(1f, 1f);
-            tr.anchorMax = new Vector2(1f, 1f);
-            tr.pivot = new Vector2(1f, 1f);
-            tr.anchoredPosition = new Vector2(-20f, -18f);
-            tr.sizeDelta = new Vector2(365f, 194f);
-
-            var trVlg = tr.gameObject.AddComponent<VerticalLayoutGroup>();
-            trVlg.padding = new RectOffset(16, 16, 12, 12);
-            trVlg.spacing = 4f;
-            trVlg.childControlWidth = true;
-            trVlg.childControlHeight = true;
-            trVlg.childForceExpandWidth = true;
-            trVlg.childForceExpandHeight = false;
-
-            droneHeaderText = GravityDriftUITheme.CreateText(tr, "DroneHeader", "DRONE THREAT MONITOR", 14f, GravityDriftUITheme.AccentSkyBlue, true);
-            droneHeaderText.gameObject.AddComponent<LayoutElement>().preferredHeight = 22f;
-
-            droneRowTexts.Clear();
-            for (int d = 0; d < 5; d++)
-            {
-                var dr = GravityDriftUITheme.CreateText(tr, $"DroneRow_{d + 1}", $"D{d + 1}  PATROL", 12.5f, GravityDriftUITheme.TextPrimary);
-                dr.gameObject.AddComponent<LayoutElement>().preferredHeight = 18f;
-                droneRowTexts.Add(dr);
-            }
-
-            droneLearnText = GravityDriftUITheme.CreateText(tr, "DroneLearn", "ESCAPES 0  ·  DODGE 0%  ·  IMP +0%", 11.5f, GravityDriftUITheme.TextSecondary);
-            droneLearnText.gameObject.AddComponent<LayoutElement>().preferredHeight = 18f;
-
-            // 3. BOTTOM TACTICAL STRIP: Jetpack Fuel Bar + Gravity Vector & Directional Bounce Arrow
+            // 2. BOTTOM HUD STRIP ONLY: Jetpack Fuel Bar + Static Gravity Vector Arrow & Charges
             var bot = GravityDriftUITheme.CreatePanel(hudRt, "BottomTacticalStrip", GravityDriftUITheme.GetPanelSprite(), Color.white);
             bot.anchorMin = new Vector2(0.5f, 0f);
             bot.anchorMax = new Vector2(0.5f, 0f);
@@ -1317,7 +1289,6 @@ namespace GravityDrift
             botHlg.childControlHeight = true;
             botHlg.childForceExpandWidth = false;
 
-            // Left Half: Jetpack Fuel Bar
             var fuelCol = new GameObject("JetpackCol", typeof(RectTransform)).GetComponent<RectTransform>();
             fuelCol.SetParent(bot, false);
             fuelCol.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1f;
@@ -1329,25 +1300,23 @@ namespace GravityDrift
             fuelVlg.childForceExpandHeight = false;
 
             var fuelTop = CreateHorizontalRow(fuelCol, "FuelHeader", 20f, 8f);
-            jetpackLabelText = GravityDriftUITheme.CreateText(fuelTop, "JetLabel", "JETPACK FUEL", 13f, GravityDriftUITheme.TextPrimary, true);
+            jetpackLabelText = GravityDriftUITheme.CreateText(fuelTop, "JetLabel", "JETPACK FUEL", 13f, Color.white, true);
             jetpackLabelText.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1f;
-            jetpackPctText = GravityDriftUITheme.CreateText(fuelTop, "JetPct", "100%", 14f, GravityDriftUITheme.AccentSkyBlue, true, TextAlignmentOptions.Right);
+            jetpackPctText = GravityDriftUITheme.CreateText(fuelTop, "JetPct", "100%", 14f, Color.white, true, TextAlignmentOptions.Right);
             jetpackPctText.gameObject.AddComponent<LayoutElement>().preferredWidth = 65f;
 
             var barBg = GravityDriftUITheme.CreatePanel(fuelCol, "FuelBarBg", GravityDriftUITheme.GetControlSprite(), Color.white);
             barBg.gameObject.AddComponent<LayoutElement>().preferredHeight = 14f;
-            jetpackFillRt = GravityDriftUITheme.CreatePanel(barBg, "FuelBarFill", GravityDriftUITheme.GetSolidSprite(), GravityDriftUITheme.AccentSkyBlue);
+            jetpackFillRt = GravityDriftUITheme.CreatePanel(barBg, "FuelBarFill", GravityDriftUITheme.GetSolidSprite(), Color.white);
             jetpackFillRt.anchorMin = Vector2.zero;
             jetpackFillRt.anchorMax = Vector2.one;
             jetpackFillRt.offsetMin = new Vector2(2f, 2f);
             jetpackFillRt.offsetMax = new Vector2(-2f, -2f);
             jetpackFillImg = jetpackFillRt.GetComponent<UnityEngine.UI.Image>();
 
-            // Vertical Hairline Separator
             var vSep = GravityDriftUITheme.CreatePanel(bot, "Sep", GravityDriftUITheme.GetSolidSprite(), GravityDriftUITheme.BorderHairline);
             vSep.gameObject.AddComponent<LayoutElement>().preferredWidth = 1f;
 
-            // Right Side: Directional Gravity Vector Arrow & Charges
             var gravCol = CreateHorizontalRow(bot, "GravityVectorBox", 48f, 10f);
             gravCol.gameObject.GetComponent<LayoutElement>().preferredWidth = 185f;
             gravCol.gameObject.GetComponent<LayoutElement>().flexibleWidth = 0f;
@@ -1357,13 +1326,13 @@ namespace GravityDrift
             ahLe.preferredWidth = 42f;
             ahLe.preferredHeight = 42f;
 
-            gravityArrowRt = GravityDriftUITheme.CreatePanel(arrowHolder, "GravityArrow", GravityDriftUITheme.GetGravityArrowSprite(), GravityDriftUITheme.AccentSkyBlue);
+            gravityArrowRt = GravityDriftUITheme.CreatePanel(arrowHolder, "GravityArrow", GravityDriftUITheme.GetGravityArrowSprite(), Color.white);
             gravityArrowRt.anchorMin = new Vector2(0.5f, 0.5f);
             gravityArrowRt.anchorMax = new Vector2(0.5f, 0.5f);
             gravityArrowRt.sizeDelta = new Vector2(26f, 26f);
             gravityArrowImg = gravityArrowRt.GetComponent<UnityEngine.UI.Image>();
 
-            gravityLabelText = GravityDriftUITheme.CreateText(gravCol, "GravText", "GRAV: DOWN\nCHARGES 3/3", 12f, GravityDriftUITheme.TextPrimary, true);
+            gravityLabelText = GravityDriftUITheme.CreateText(gravCol, "GravText", "GRAV: DOWN\nCHARGES 3/3", 12f, Color.white, true);
             gravityLabelText.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1f;
         }
 
@@ -1392,64 +1361,62 @@ namespace GravityDrift
             if (world == null || !world.IsCreated) return;
             var em = world.EntityManager;
 
-            bool hazardAlertActive = false;
+            // Count Drones cleanly for optional objective readout
+            int totalDrones = 0;
+            int destroyedDrones = 0;
+            var droneQuery = em.CreateEntityQuery(typeof(DroneState));
+            totalDrones = droneQuery.CalculateEntityCount();
+            if (totalDrones > 0)
+            {
+                using var dStates = droneQuery.ToComponentDataArray<DroneState>(Allocator.Temp);
+                for (int i = 0; i < dStates.Length; i++)
+                {
+                    if (dStates[i].IsDestroyed) destroyedDrones++;
+                }
+            }
+            droneQuery.Dispose();
 
-            // 1. Objective & Timer & Hazard Alert
+            // 1. Plain Unboxed Objectives & Sector Status
             var objQuery = em.CreateEntityQuery(typeof(LevelObjectiveState));
             if (objQuery.CalculateEntityCount() > 0)
             {
                 using var objArray = objQuery.ToComponentDataArray<LevelObjectiveState>(Allocator.Temp);
                 var lvl = objArray[0];
 
-                var pcgRef = FindAnyObjectByType<PCGRoomGenerator>();
-                string arch = (pcgRef != null && !string.IsNullOrEmpty(pcgRef.LastArchetypeName)) ? $"  ·  {pcgRef.LastArchetypeName.ToUpperInvariant()}" : "";
-                levelBadgeText.text = $"LVL <mspace=0.55em>{lvl.LevelIndex:00}/20</mspace>  ·  #{lvl.CurrentSeed}{arch}";
-
                 int maxL = Mathf.Max(3, lvl.MaxLives);
                 int remL = Mathf.Clamp(lvl.LivesRemaining, 0, maxL);
-                string hearts = new string('■', remL) + new string('□', maxL - remL);
-                if (colorCodeDynamicHudStates)
-                {
-                    livesBadgeText.color = (remL <= 1) ? livesCriticalColor : (remL == 2 ? livesWarningColor : livesHealthyColor);
-                }
-                else
-                {
-                    livesBadgeText.color = cachedLivesBadgeColor;
-                }
-                livesBadgeText.text = $"LIVES  {hearts}  ({remL}/{maxL})";
 
-                switchStatusText.text = lvl.SwitchFlipped
-                    ? "SWITCH  <color=#38BDF8><b>ACTIVE - SWITCH FLIPPED</b></color>"
-                    : "SWITCH  <color=#8A99AD>LOCKED (FLY NEAR PAD)</color>";
-
-                if (lvl.RoomCleared)
-                    airlockStatusText.text = "AIRLOCK  <color=#22C55E><b>CLEARED — ADVANCING</b></color>";
-                else if (lvl.AirlockUnlocked)
-                    airlockStatusText.text = "AIRLOCK  <color=#22C55E><b>UNLOCKED — ENTER EXIT</b></color>";
-                else
-                    airlockStatusText.text = "AIRLOCK  <color=#EF4444>LOCKED</color>";
-
-                bool showCores = lvl.TotalCores > 0;
-                if (coresRowObj.activeSelf != showCores) coresRowObj.SetActive(showCores);
-                if (showCores)
+                if (sectorStatusText != null)
                 {
-                    string cCol = (lvl.CoresCollected >= lvl.TotalCores) ? "#38BDF8" : "#E2E8F0";
-                    coresValueText.text = $"CORES  <color={cCol}><b><mspace=0.55em>{lvl.CoresCollected}/{lvl.TotalCores}</mspace></b></color>";
+                    sectorStatusText.text = $"LEVEL {lvl.LevelIndex:00}/20  |  LIVES {remL}/{maxL}  |  SEED #{lvl.CurrentSeed}";
                 }
 
-                timerActionText.text = $"TIME <mspace=0.55em>{lvl.RoomTimer:F1}s</mspace>  ·  <color=#E2E8F0>{lvl.CurrentPlayerAction}</color>";
+                string swState = lvl.SwitchFlipped ? "DONE" : "PENDING";
+                string exitState = lvl.RoomCleared ? "CLEARED" : (lvl.AirlockUnlocked ? "OPEN" : "LOCKED");
 
-                if (lvl.HazardWarningTimer > 0f)
+                if (reqSwitchText != null)
                 {
-                    hazardAlertActive = true;
-                    if (!alertBannerObj.activeSelf) alertBannerObj.SetActive(true);
-                    alertBannerText.text = $"HAZARD SHOCK! -25% FUEL (HITS: {lvl.HazardHits})";
+                    reqSwitchText.text = $"Required: Flip the switch [{swState}]";
+                }
+
+                if (reqCoresText != null)
+                {
+                    reqCoresText.text = $"Required: Collect all orbs/cores ({lvl.CoresCollected}/{lvl.TotalCores})";
+                }
+
+                if (reqAirlockText != null)
+                {
+                    reqAirlockText.text = $"Required: Reach the exit airlock [{exitState}]";
+                }
+
+                if (optDronesText != null)
+                {
+                    optDronesText.text = $"Optional: Defeat drones ({destroyedDrones}/{totalDrones})";
                 }
             }
             objQuery.Dispose();
 
-            // 2. Jetpack Fuel / Boost / Overload
-            bool overloadAlertActive = false;
+            // 2. Jetpack Fuel / Boost / Overload (Bottom HUD)
             var playerQuery = em.CreateEntityQuery(typeof(PlayerTag), typeof(JetpackComponent));
             if (playerQuery.CalculateEntityCount() > 0)
             {
@@ -1459,43 +1426,39 @@ namespace GravityDrift
 
                 if (jet.IsInCooldown)
                 {
-                    overloadAlertActive = true;
-                    float blink = Mathf.PingPong(Time.unscaledTime * 11f, 1f);
-                    Color pulseRed = (blink > 0.42f) ? dangerColor : overloadDimColor;
-                    jetpackLabelText.text = $"<color=#EF4444><b>JETPACK OVERLOADED ({jet.CooldownTimer:F1}s)</b></color>";
-                    jetpackPctText.text = "0%";
-                    if (colorCodeDynamicHudStates)
+                    if (jetpackLabelText != null) jetpackLabelText.text = $"JETPACK OVERLOADED ({jet.CooldownTimer:F1}s)";
+                    if (jetpackPctText != null)
                     {
-                        jetpackPctText.color = dangerColor;
-                        jetpackFillImg.color = pulseRed;
+                        jetpackPctText.text = "0%";
+                        jetpackPctText.color = colorCodeDynamicHudStates ? dangerColor : cachedJetpackPctColor;
                     }
-                    jetpackFillRt.anchorMax = new Vector2(0.08f, 1f);
-
-                    if (!hazardAlertActive)
+                    if (jetpackFillImg != null)
                     {
-                        if (!alertBannerObj.activeSelf) alertBannerObj.SetActive(true);
-                        alertBannerText.text = $"JETPACK OVERLOADED  ·  RECHARGING {jet.CooldownTimer:F1}s";
+                        float blink = Mathf.PingPong(Time.unscaledTime * 11f, 1f);
+                        jetpackFillImg.color = (blink > 0.42f) ? cachedJetpackFillColor : overloadDimColor;
                     }
+                    if (jetpackFillRt != null) jetpackFillRt.anchorMax = new Vector2(0.08f, 1f);
                 }
                 else
                 {
-                    jetpackLabelText.text = jet.IsBoosting
-                        ? "JETPACK  <color=#38BDF8><b>[BOOST]</b></color>"
-                        : (jet.IsThrusting ? "JETPACK  [THRUST]" : "JETPACK  [RECHARGING]");
-                    jetpackPctText.text = $"<mspace=0.55em>{fuelPct * 100f:F0}%</mspace>";
-                    jetpackPctText.color = cachedJetpackPctColor;
-                    jetpackFillImg.color = cachedJetpackFillColor;
-                    jetpackFillRt.anchorMax = new Vector2(Mathf.Max(0.01f, fuelPct), 1f);
+                    if (jetpackLabelText != null)
+                    {
+                        jetpackLabelText.text = jet.IsBoosting
+                            ? "JETPACK  [BOOST]"
+                            : (jet.IsThrusting ? "JETPACK  [THRUST]" : "JETPACK  [RECHARGING]");
+                    }
+                    if (jetpackPctText != null)
+                    {
+                        jetpackPctText.text = $"{fuelPct * 100f:F0}%";
+                        jetpackPctText.color = cachedJetpackPctColor;
+                    }
+                    if (jetpackFillImg != null) jetpackFillImg.color = cachedJetpackFillColor;
+                    if (jetpackFillRt != null) jetpackFillRt.anchorMax = new Vector2(Mathf.Max(0.01f, fuelPct), 1f);
                 }
             }
             playerQuery.Dispose();
 
-            if (!hazardAlertActive && !overloadAlertActive && alertBannerObj.activeSelf)
-            {
-                alertBannerObj.SetActive(false);
-            }
-
-            // 3. Gravity Vector & Directional Bounce Indicator
+            // 3. Static Gravity Direction Indicator (No animation/bobbing — purely flipped/rotated)
             var gravQuery = em.CreateEntityQuery(typeof(GravityState));
             if (gravQuery.CalculateEntityCount() > 0)
             {
@@ -1510,86 +1473,23 @@ namespace GravityDrift
                     GravityDirection.Right => -90f,
                     _ => 180f
                 };
-                gravityArrowRt.localRotation = Quaternion.Euler(0f, 0f, angleZ);
-
-                if (g.DirectionChangedThisFrame)
+                if (gravityArrowRt != null)
                 {
-                    arrowBounceTimer = 0.28f;
-                    arrowBounceDir = g.CurrentDirection switch
-                    {
-                        GravityDirection.Up => Vector2.up,
-                        GravityDirection.Down => Vector2.down,
-                        GravityDirection.Left => Vector2.left,
-                        GravityDirection.Right => Vector2.right,
-                        _ => Vector2.zero
-                    };
-                }
-
-                if (arrowBounceTimer > 0f)
-                {
-                    arrowBounceTimer = Mathf.Max(0f, arrowBounceTimer - Time.unscaledDeltaTime);
-                    float t = arrowBounceTimer / 0.28f;
-                    float kick = Mathf.Sin(t * Mathf.PI);
-                    gravityArrowRt.anchoredPosition = arrowBounceDir * (kick * 7f);
-                    gravityArrowRt.localScale = Vector3.one * (1f + kick * 0.35f);
-                    if (colorCodeDynamicHudStates) gravityArrowImg.color = accentFlashColor;
-                }
-                else
-                {
+                    gravityArrowRt.localRotation = Quaternion.Euler(0f, 0f, angleZ);
                     gravityArrowRt.anchoredPosition = Vector2.zero;
                     gravityArrowRt.localScale = Vector3.one;
+                }
+                if (gravityArrowImg != null)
+                {
                     gravityArrowImg.color = cachedGravityArrowColor;
                 }
 
-                gravityLabelText.text = $"GRAV: <color=#38BDF8>{g.CurrentDirection.ToString().ToUpperInvariant()}</color>\nCHARGES <mspace=0.55em>{g.CurrentCharges}/{g.MaxCharges}</mspace>";
-            }
-            gravQuery.Dispose();
-
-            // 4. Drone Threat Monitor
-            var droneQuery = em.CreateEntityQuery(typeof(DroneState), typeof(BayesianBeliefComponent));
-            int droneCount = droneQuery.CalculateEntityCount();
-            if (droneCount > 0)
-            {
-                using var dStates = droneQuery.ToComponentDataArray<DroneState>(Allocator.Temp);
-                using var dBeliefs = droneQuery.ToComponentDataArray<BayesianBeliefComponent>(Allocator.Temp);
-
-                for (int i = 0; i < droneRowTexts.Count; i++)
+                if (gravityLabelText != null)
                 {
-                    bool active = i < dStates.Length;
-                    if (droneRowTexts[i].gameObject.activeSelf != active) droneRowTexts[i].gameObject.SetActive(active);
-                    if (!active) continue;
-
-                    var st = dStates[i];
-                    var bel = dBeliefs[i];
-                    if (st.IsDestroyed)
-                    {
-                        droneRowTexts[i].text = $"D{i + 1}  <color=#22C55E><b>CRUSHED / VAPORIZED</b></color>";
-                    }
-                    else if (st.ActiveAction == DroneActionType.EvadeCrateDodge)
-                    {
-                        droneRowTexts[i].text = $"D{i + 1}  <color=#F59E0B><b>EVADING CRATE</b></color>  <color=#8A99AD>π={bel.TopClusterConfidence * 100f:F0}%</color>";
-                    }
-                    else
-                    {
-                        string stCol = (st.CurrentState == DroneFSMState.Pursue) ? "#EF4444" : "#38BDF8";
-                        droneRowTexts[i].text = $"D{i + 1}  <color={stCol}><b>{st.CurrentState.ToString().ToUpperInvariant()}</b></color>  <color=#8A99AD>π=<mspace=0.55em>{bel.TopClusterConfidence * 100f:F0}%</mspace> · H={bel.Entropy:F1}b</color>";
-                    }
+                    gravityLabelText.text = $"GRAV: {g.CurrentDirection.ToString().ToUpperInvariant()}\nCHARGES {g.CurrentCharges}/{g.MaxCharges}";
                 }
             }
-            droneQuery.Dispose();
-
-            var learnQuery = em.CreateEntityQuery(typeof(DroneLearningState));
-            if (learnQuery.CalculateEntityCount() > 0)
-            {
-                using var lArr = learnQuery.ToComponentDataArray<DroneLearningState>(Allocator.Temp);
-                var l = lArr[0];
-                float dodgePct = (l.TotalCrateDodgesAttempted > 0)
-                    ? (100f * l.TotalCrateDodgesSucceeded / l.TotalCrateDodgesAttempted)
-                    : (l.CrateDodgeSkill * 100f);
-                droneHeaderText.text = $"DRONE THREAT ({droneCount})  ·  <color=#E2E8F0>AI {l.DroneImprovementPct:F0}%</color>";
-                droneLearnText.text = $"ESC {l.TotalEscapesCompleted}  ·  DODGE {dodgePct:F0}%  ·  PAT {l.PatternAdaptationScore * 100f:F0}%";
-            }
-            learnQuery.Dispose();
+            gravQuery.Dispose();
         }
     }
 }

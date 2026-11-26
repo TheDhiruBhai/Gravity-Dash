@@ -32,6 +32,7 @@ namespace GravityDrift
                     CurrentPlayerAction = PlayerActionType.Idle,
                     MaxLives = 5,
                     LivesRemaining = 5,
+                    LevelStartGraceTimer = 0f,
                     RespawnGraceTimer = 0f,
                     IsRunOver = false,
                     IsRunCompleted = false
@@ -56,6 +57,10 @@ namespace GravityDrift
 
             if (levelState.IsRunOver || levelState.IsRunCompleted || levelState.IsRespawning) return;
 
+            if (levelState.LevelStartGraceTimer > 0f)
+            {
+                levelState.LevelStartGraceTimer = math.max(0f, levelState.LevelStartGraceTimer - dt);
+            }
             if (levelState.RespawnGraceTimer > 0f)
             {
                 levelState.RespawnGraceTimer = math.max(0f, levelState.RespawnGraceTimer - dt);

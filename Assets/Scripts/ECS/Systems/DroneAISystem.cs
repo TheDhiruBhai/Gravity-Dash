@@ -10,6 +10,8 @@ namespace GravityDrift
     [UpdateAfter(typeof(PlayerMovementSystem))]
     public partial struct DroneAISystem : ISystem
     {
+        public const float MinCrushSpeed = 4.5f;
+
         public void OnCreate(ref SystemState state)
         {
             state.RequireForUpdate<GravityState>();
@@ -65,7 +67,7 @@ namespace GravityDrift
             {
                 var objState = SystemAPI.GetComponent<LevelObjectiveState>(SystemAPI.GetSingletonEntity<LevelObjectiveState>());
                 if (objState.IsRunOver || objState.IsRunCompleted) return;
-                if (objState.IsRespawning || InputHelper.IsInputFrozen)
+                if (objState.IsRespawning || objState.LevelStartGraceTimer > 0f || InputHelper.IsInputFrozen)
                 {
                     foreach (var velocity in SystemAPI.Query<RefRW<PhysicsVelocity>>().WithAll<DroneAITag>())
                     {
@@ -114,19 +116,37 @@ namespace GravityDrift
                     dt);
             }
 
-            // Obstacles, Crates (with velocities!), and Hazards
+            // Obstacles, Crates (with pre-damping velocities/impacts!), and Hazards
+            foreach (var cTagRw in SystemAPI.Query<RefRW<CargoCrateTag>>())
+            {
+                if (cTagRw.ValueRO.HasPendingImpact)
+                {
+                    cTagRw.ValueRW.PendingImpactTimer -= dt;
+                    if (cTagRw.ValueRO.PendingImpactTimer <= 0f)
+                    {
+                        cTagRw.ValueRW.HasPendingImpact = false;
+                        cTagRw.ValueRW.PendingImpactTimer = 0f;
+                    }
+                }
+            }
+
             var blockedCells = new NativeParallelHashSet<int2>(256, Allocator.Temp);
             var hazardCells = new NativeParallelHashSet<int2>(64, Allocator.Temp);
+            var crateEntities = new NativeList<Entity>(Allocator.Temp);
             var cratePositions = new NativeList<float3>(Allocator.Temp);
             var crateVelocities = new NativeList<float3>(Allocator.Temp);
+            var crateTags = new NativeList<CargoCrateTag>(Allocator.Temp);
             var wallPositions = new NativeList<float3>(Allocator.Temp);
             var hazardPositions = new NativeList<float3>(Allocator.Temp);
 
-            foreach (var (crateTransform, crateVel) in SystemAPI.Query<RefRO<LocalTransform>, RefRO<PhysicsVelocity>>().WithAll<CargoCrateTag>())
+            foreach (var (crateTransform, crateVel, crateTag, crateEntity) in
+                SystemAPI.Query<RefRO<LocalTransform>, RefRO<PhysicsVelocity>, RefRO<CargoCrateTag>>().WithEntityAccess())
             {
                 float3 cpos = crateTransform.ValueRO.Position;
+                crateEntities.Add(crateEntity);
                 cratePositions.Add(cpos);
                 crateVelocities.Add(crateVel.ValueRO.Linear);
+                crateTags.Add(crateTag.ValueRO);
                 blockedCells.Add(GridAStar.WorldToGrid(cpos, bounds.RoomWidth, bounds.RoomHeight, bounds.RoomOrigin));
             }
 
@@ -187,19 +207,40 @@ namespace GravityDrift
                     }
                 }
 
-                // 2. FAST-MOVING CRATE CRUSH CHECK & DYNAMIC CRATE-DODGE EVALUATION (a^drone_t = EvadeCrateDodge)
+                // 2. GENUINE FORCEFUL CRATE IMPACT CHECK & DYNAMIC CRATE-DODGE EVALUATION (a^drone_t = EvadeCrateDodge)
                 float nearestFastCrateDist = 999f;
                 for (int c = 0; c < cratePositions.Length; c++)
                 {
                     float3 cpos = cratePositions[c];
                     float3 cvel = crateVelocities[c];
-                    float crateSpd = math.length(cvel);
-                    float distToCrate = math.distance(dronePos, cpos);
+                    var cTag = crateTags[c];
+
+                    float3 effectiveImpactVel = cvel;
+                    bool hasImpactSignal = cTag.HasPendingImpact && math.distance(dronePos, cTag.PendingImpactTargetPos) < 1.25f;
+                    if (hasImpactSignal && math.lengthsq(cTag.PendingImpactVelocity) > math.lengthsq(effectiveImpactVel))
+                    {
+                        effectiveImpactVel = cTag.PendingImpactVelocity;
+                    }
+
+                    float crateSpd = math.length(effectiveImpactVel);
+                    float3 toDrone = dronePos - cpos;
+                    toDrone.z = 0f;
+                    float distToCrate = math.length(toDrone);
                     if (crateSpd > 1.5f && distToCrate < nearestFastCrateDist) nearestFastCrateDist = distToCrate;
 
-                    // Crushed if fast-moving crate impacts drone directly -> 0.5 intensity shake + failed-dodge regression!
-                    if (distToCrate < 0.88f && crateSpd > 2.2f)
+                    // Crushed ONLY when crate speed >= MinCrushSpeed and closing velocity along impact normal >= MinCrushSpeed
+                    float3 impactDir = (distToCrate > 0.05f) ? (toDrone / distToCrate) : math.normalizesafe(effectiveImpactVel);
+                    float closingSpeed = math.dot(effectiveImpactVel - velocity.ValueRO.Linear, impactDir);
+                    bool inContactRange = (distToCrate < 0.84f) || hasImpactSignal;
+                    if (inContactRange && crateSpd >= MinCrushSpeed && closingSpeed >= MinCrushSpeed)
                     {
+                        if (cTag.HasPendingImpact)
+                        {
+                            cTag.HasPendingImpact = false;
+                            cTag.PendingImpactTimer = 0f;
+                            crateTags[c] = cTag;
+                            SystemAPI.SetComponent(crateEntities[c], cTag);
+                        }
                         droneState.ValueRW.IsDestroyed = true;
                         droneState.ValueRW.PendingDodgeOutcome = false;
                         if (!droneState.ValueRO.BaselineMode && learningEntity != Entity.Null)
@@ -212,10 +253,9 @@ namespace GravityDrift
                     }
 
                     // Threat anticipation: incoming falling crate within 2.65m for smart drones!
-                    if (!droneState.ValueRO.BaselineMode && crateSpd > 1.8f && distToCrate < 2.65f && droneState.ValueRO.CrateDodgeCooldown <= 0f)
+                    float liveCrateSpd = math.length(cvel);
+                    if (!droneState.ValueRO.BaselineMode && liveCrateSpd > 1.8f && distToCrate < 2.65f && droneState.ValueRO.CrateDodgeCooldown <= 0f)
                     {
-                        float3 toDrone = dronePos - cpos;
-                        toDrone.z = 0f;
                         float approachDot = math.dot(math.normalizesafe(cvel), math.normalizesafe(toDrone));
                         if (approachDot > 0.35f)
                         {
@@ -673,8 +713,10 @@ namespace GravityDrift
 
             blockedCells.Dispose();
             hazardCells.Dispose();
+            crateEntities.Dispose();
             cratePositions.Dispose();
             crateVelocities.Dispose();
+            crateTags.Dispose();
             wallPositions.Dispose();
             hazardPositions.Dispose();
         }

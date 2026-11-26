@@ -338,9 +338,8 @@ namespace GravityDrift
                     grid[roomWidth - 1, y] = 1;
                 }
 
-                // Randomize spawn height band (low / mid / upper left) and right-wall airlock height
-                int[] spawnYChoices = { 2, Mathf.Clamp(cyMid, 2, roomHeight - 3), Mathf.Clamp(roomHeight - 3, 2, roomHeight - 3) };
-                playerSpawn = new int2(2, spawnYChoices[rand.Next(spawnYChoices.Length)]);
+                // Always spawn player cleanly in the bottom-left area of the room; randomize right-wall airlock height
+                playerSpawn = new int2(2, 2);
                 airlockPos = new int2(roomWidth - 2, rand.Next(2, roomHeight - 2));
 
                 int variantTag = 0;
@@ -495,6 +494,15 @@ namespace GravityDrift
                     if (Mathf.Abs(px - airlockPos.x) <= 2 && Mathf.Abs(py - airlockPos.y) <= 2) continue;
                     grid[px, py] = 1;
                     placed++;
+                }
+
+                // Keep bottom-left spawn pocket open so baffles never trap player at (2, 2)
+                for (int sx = 1; sx <= 3; sx++)
+                {
+                    for (int sy = 1; sy <= 3; sy++)
+                    {
+                        if (grid[sx, sy] == 1) grid[sx, sy] = 0;
+                    }
                 }
 
                 // Guarantee Airlock is flush against Right Wall with clear inward entry
@@ -654,16 +662,18 @@ namespace GravityDrift
                 }
             }
 
-            // Escalating Drone Count across 20 Levels with randomized spawns
+            // Escalating Drone Count across 20 Levels; spawn mostly in mid, right, or top sections away from left player spawn
             int droneCount = (levelIndex >= 14) ? 5 : (levelIndex >= 7) ? 4 : (levelIndex >= 4) ? 3 : (levelIndex >= 2) ? 2 : 1;
+            int midMinX = Mathf.Max(4, Mathf.CeilToInt(roomWidth * 0.40f));
+            int topMinY = Mathf.Max(3, Mathf.CeilToInt(roomHeight * 0.55f));
             var droneCandidates = new List<int2>
             {
                 new int2(roomWidth - 4 - rand.Next(0, 3), roomHeight - 3 - rand.Next(0, 3)),
                 new int2(roomWidth - 5 - rand.Next(0, 3), 2 + rand.Next(0, 3)),
-                new int2(4 + rand.Next(0, 3), roomHeight - 3 - rand.Next(0, 2)),
-                new int2(cxMid + rand.Next(-2, 3), roomHeight - 4 - rand.Next(0, 2)),
-                new int2(cxMid + rand.Next(-2, 4), Mathf.Clamp(cyMid + rand.Next(-2, 3), 2, roomHeight - 3)),
-                new int2(roomWidth - 4, Mathf.Clamp(cyMid + rand.Next(-2, 3), 2, roomHeight - 3))
+                new int2(cxMid + rand.Next(0, 3), roomHeight - 3 - rand.Next(0, 2)),
+                new int2(Mathf.Max(midMinX, cxMid + rand.Next(-1, 4)), Mathf.Clamp(cyMid + rand.Next(-2, 3), 2, roomHeight - 3)),
+                new int2(roomWidth - 4, Mathf.Clamp(cyMid + rand.Next(-2, 3), 2, roomHeight - 3)),
+                new int2(Mathf.Clamp(playerSpawn.x + 3 + rand.Next(0, 3), midMinX - 2, roomWidth - 4), Mathf.Clamp(topMinY + rand.Next(0, 3), topMinY, roomHeight - 3))
             };
             ShuffleList(droneCandidates, rand);
             for (int d = 0; d < droneCount; d++)
@@ -671,16 +681,26 @@ namespace GravityDrift
                 int dx = Mathf.Clamp(droneCandidates[d % droneCandidates.Count].x, 2, roomWidth - 3);
                 int dy = Mathf.Clamp(droneCandidates[d % droneCandidates.Count].y, 2, roomHeight - 3);
 
-                // Never overwrite switch, its supporting platform tile, airlock, walls, or player spawn
-                if (grid[dx, dy] != 0 || (dx == switchPos.x && dy == switchPos.y - 1) ||
-                    (Mathf.Abs(dx - playerSpawn.x) <= 2 && Mathf.Abs(dy - playerSpawn.y) <= 2))
+                bool inPreferredZone = dx >= midMinX || dy >= topMinY;
+                int distSqSpawn = (dx - playerSpawn.x) * (dx - playerSpawn.x) + (dy - playerSpawn.y) * (dy - playerSpawn.y);
+                bool safeFromSpawn = (Mathf.Abs(dx - playerSpawn.x) > 3 || dy >= topMinY) && distSqSpawn >= 25;
+
+                // Never overwrite switch, its supporting platform tile, airlock, walls, or bottom-left player spawn
+                if (grid[dx, dy] != 0 || (dx == switchPos.x && dy == switchPos.y - 1) || !inPreferredZone || !safeFromSpawn)
                 {
                     bool foundFree = false;
                     for (int tries = 0; tries < 80; tries++)
                     {
-                        int tx = rand.Next(3, roomWidth - 3);
-                        int ty = rand.Next(2, roomHeight - 2);
-                        if (grid[tx, ty] == 0 && !(tx == switchPos.x && ty == switchPos.y - 1) && (Mathf.Abs(tx - playerSpawn.x) > 2 || Mathf.Abs(ty - playerSpawn.y) > 2))
+                        bool pickTopBand = (tries % 3 == 0);
+                        int tx = pickTopBand ? rand.Next(3, roomWidth - 3) : rand.Next(midMinX, roomWidth - 2);
+                        int ty = pickTopBand ? rand.Next(topMinY, roomHeight - 2) : rand.Next(2, roomHeight - 2);
+                        tx = Mathf.Clamp(tx, 3, roomWidth - 3);
+                        ty = Mathf.Clamp(ty, 2, roomHeight - 3);
+
+                        bool tryPreferred = tx >= midMinX || ty >= topMinY;
+                        int tryDistSq = (tx - playerSpawn.x) * (tx - playerSpawn.x) + (ty - playerSpawn.y) * (ty - playerSpawn.y);
+                        bool trySafe = (Mathf.Abs(tx - playerSpawn.x) > 3 || ty >= topMinY) && tryDistSq >= 25;
+                        if (tryPreferred && trySafe && grid[tx, ty] == 0 && !(tx == switchPos.x && ty == switchPos.y - 1))
                         {
                             dx = tx;
                             dy = ty;
@@ -827,7 +847,13 @@ namespace GravityDrift
         public static void EnsureURPBloomVolume()
         {
             var existing = GameObject.Find("GlobalBloom_Volume");
-            if (existing != null) return;
+            if (existing != null)
+            {
+                existing.SetActive(true);
+                var existingVol = existing.GetComponent<Volume>();
+                if (existingVol != null) existingVol.enabled = true;
+                return;
+            }
 
             var volGo = new GameObject("GlobalBloom_Volume");
             volGo.layer = 0; // Default layer matches UniversalAdditionalCameraData.volumeLayerMask
@@ -1167,7 +1193,7 @@ namespace GravityDrift
                 hObj.name = $"HazardPad_{hIdx++}";
                 hObj.transform.localScale = new Vector3(0.94f, 0.94f, 0.72f);
 
-                // Make Hazard Pads trigger colliders & ignite crimson HDR emission (#FF1A1A) for URP Bloom
+                // Make Hazard Pads trigger colliders & ignite crimson HDR emission (#FF1A1A) for URP Bloom (no point light clutter)
                 var hCol = hObj.GetComponent<BoxCollider>();
                 if (hCol != null) hCol.isTrigger = true;
 
@@ -1183,15 +1209,6 @@ namespace GravityDrift
                     hPb.SetColor("_EmissionColor", crimsonRed * 3.4f);
                     hRend.SetPropertyBlock(hPb);
                 }
-
-                var beacon = new GameObject("HazardGlow");
-                beacon.transform.SetParent(hObj.transform);
-                beacon.transform.localPosition = new Vector3(0f, 0f, -0.22f);
-                var glowLight = beacon.AddComponent<Light>();
-                glowLight.type = LightType.Point;
-                glowLight.color = crimsonRed;
-                glowLight.intensity = 3.8f;
-                glowLight.range = 3.0f;
 
                 // Hazard Pad Dense Red SparksEffect (Local space, compact lifetimes/sizes, 0.01..0.1 stretch/trail)
                 GameObject sparkGo;
@@ -1276,16 +1293,7 @@ namespace GravityDrift
                 swRend.SetPropertyBlock(swPb);
             }
 
-            var swGlow = new GameObject("SwitchBloomLight");
-            swGlow.transform.position = switchWorld + new Vector3(0f, 0.32f, -0.45f);
-            swGlow.transform.SetParent(switchObj.transform, worldPositionStays: true);
-            var swLight = swGlow.AddComponent<Light>();
-            swLight.type = LightType.Point;
-            swLight.color = new Color(1.0f, 0.56f, 0.14f);
-            swLight.intensity = 4.2f;
-            swLight.range = 3.8f;
-
-            // 5. Energy Cores (crisp specular/rim shine + emissive highlight)
+            // 5. Energy Cores (crisp specular/rim shine + HDR emissive guidance, no point light clutter)
             for (int i = 0; i < cores.Count; i++)
             {
                 Vector3 coreWorld = GridToWorldPos(cores[i].x, cores[i].y);
@@ -1310,14 +1318,6 @@ namespace GravityDrift
                     cPb.SetColor("_EmissionColor", coreTint * 2.4f);
                     cRend.SetPropertyBlock(cPb);
                 }
-                var cGlow = new GameObject("CoreShineLight");
-                cGlow.transform.position = coreWorld + new Vector3(0f, 0f, -0.35f);
-                cGlow.transform.SetParent(coreObj.transform, worldPositionStays: true);
-                var cLight = cGlow.AddComponent<Light>();
-                cLight.type = LightType.Point;
-                cLight.color = new Color(0.35f, 0.95f, 1.0f);
-                cLight.intensity = 2.1f;
-                cLight.range = 2.4f;
 
                 var col = coreObj.GetComponent<SphereCollider>();
                 col.isTrigger = true;
@@ -1355,15 +1355,6 @@ namespace GravityDrift
                 airlockBlock.SetColor("_EmissionColor", lockedRed * 1.15f);
                 airlockRend.SetPropertyBlock(airlockBlock);
             }
-
-            var airGlow = new GameObject("AirlockBeaconLight");
-            airGlow.transform.position = airlockWorld + new Vector3(-0.45f, 0f, -0.45f);
-            airGlow.transform.SetParent(airlockObj.transform, worldPositionStays: true);
-            var airLight = airGlow.AddComponent<Light>();
-            airLight.type = LightType.Point;
-            airLight.color = new Color(0.94f, 0.24f, 0.24f);
-            airLight.intensity = 2.6f;
-            airLight.range = 3.2f;
 
             // 7. Patrol Drones (gravity-neutral, clamped patrol points)
             float innerMinX = roomOrigin.x + 1.5f;

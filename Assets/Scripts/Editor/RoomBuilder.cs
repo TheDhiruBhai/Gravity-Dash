@@ -54,7 +54,7 @@ namespace GravityDrift.Editor
             camObj.AddComponent<CameraFeedbackController>();
             PCGRoomGenerator.EnsureURPBloomVolume();
 
-            // Lighting
+            // Primary Directional Lighting (no extra point/fill light clutter)
             GameObject lightObj = new GameObject("Directional Light");
             Light dirLight = lightObj.AddComponent<Light>();
             dirLight.type = LightType.Directional;
@@ -62,14 +62,6 @@ namespace GravityDrift.Editor
             dirLight.intensity = 1.3f;
             dirLight.shadows = LightShadows.Soft;
             lightObj.transform.rotation = Quaternion.Euler(38f, -42f, 0f);
-
-            GameObject fillLightObj = new GameObject("Ambient Fill Light");
-            Light fillLight = fillLightObj.AddComponent<Light>();
-            fillLight.type = LightType.Point;
-            fillLight.color = new Color(0.2f, 0.5f, 0.8f);
-            fillLight.intensity = 2.0f;
-            fillLight.range = 30f;
-            fillLightObj.transform.position = new Vector3(0, 0, -5f);
 
             GameObject envRoot = new GameObject("--- ENVIRONMENT ---");
             GameObject cratesRoot = new GameObject("--- DYNAMIC CRATES ---");

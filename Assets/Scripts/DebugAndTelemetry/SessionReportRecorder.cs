@@ -629,6 +629,35 @@ namespace GravityDrift
             }
         }
 
+        /// <summary>
+        /// Ensures any final run-over attempt is archived and saved once when lives reach 0.
+        /// </summary>
+        public void ArchiveRunEndIfPending(string outcome = "RunOver")
+        {
+            if (!hasActiveSession || !attemptActive) return;
+            var world = World.DefaultGameObjectInjectionWorld;
+            if (world == null || !world.IsCreated) return;
+            var em = world.EntityManager;
+            var oQ = em.CreateEntityQuery(typeof(LevelObjectiveState));
+            if (oQ.CalculateEntityCount() > 0)
+            {
+                using var oArr = oQ.ToComponentDataArray<LevelObjectiveState>(Allocator.Temp);
+                var lvl = oArr[0];
+                oQ.Dispose();
+                CheckAndRecordTagDeathsInternal(em, lvl);
+                if (attemptActive && (lvl.IsRunOver || lvl.LivesRemaining <= 0))
+                {
+                    RecordSnapshotInternal(em, lvl, outcome, deathsThisAttempt: lvl.LivesRemaining <= 0 ? 1 : 0);
+                    attemptActive = false;
+                    SaveAllReports();
+                }
+            }
+            else
+            {
+                oQ.Dispose();
+            }
+        }
+
         private void CheckAndRecordTagDeathsInternal(EntityManager em, LevelObjectiveState lvl)
         {
             var sQ = em.CreateEntityQuery(typeof(PlayerCounterplayStats));
@@ -641,6 +670,10 @@ namespace GravityDrift
                     int deltaTags = stats.TimesTaggedByDrone - lastObservedTagged;
                     lastObservedTagged = stats.TimesTaggedByDrone;
                     RecordSnapshotInternal(em, lvl, "Death_Tagged", deltaTags);
+                    if (lvl.IsRunOver || lvl.LivesRemaining <= 0)
+                    {
+                        attemptActive = false;
+                    }
                     SaveAllReports();
                 }
             }
@@ -681,6 +714,8 @@ namespace GravityDrift
                         using var oArr = oQ.ToComponentDataArray<LevelObjectiveState>(Allocator.Temp);
                         var lvl = oArr[0];
                         oQ.Dispose();
+                        if (!lvl.IsRunOver && !lvl.IsRunCompleted)
+                        {
                         var bQ = em.CreateEntityQuery(typeof(RoomBoundsState));
                         var bounds = bQ.CalculateEntityCount() > 0 ? bQ.ToComponentDataArray<RoomBoundsState>(Allocator.Temp)[0] : new RoomBoundsState { RoomWidth = 20, RoomHeight = 12 };
                         bQ.Dispose();
@@ -732,6 +767,7 @@ namespace GravityDrift
                             movement_predictability = learn.MovementPredictability,
                             pattern_adaptation_pct = learn.PatternAdaptationScore * 100f
                         });
+                        }
                     }
                     else
                     {
@@ -774,7 +810,7 @@ namespace GravityDrift
             if (wroteAny)
             {
                 LastSavedStatus = $"Saved {CurrentSessionId} ({exportLevels.Count} lvl rows, {inputEvents.Count} input events)";
-                Debug.Log($"<color=#38BDF8><b>[SESSION REPORT]</b></color> {LastSavedStatus}\n  Project: {projDir}\n  Persistent: {persDir}");
+                Debug.Log($"[SESSION REPORT] {LastSavedStatus}\n  Project: {projDir}\n  Persistent: {persDir}");
             }
             return wroteAny;
         }

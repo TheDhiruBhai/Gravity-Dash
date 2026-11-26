@@ -81,12 +81,12 @@ namespace GravityDrift.Editor
                 string menuPng = Path.Combine(Application.dataPath, "../Telemetry/UI_MainMenu_Preview.png");
                 ScreenCapture.CaptureScreenshot(menuPng);
 
-                ui.OpenSettingsMenu(UIState.MainMenu);
                 SessionState.SetInt(PhaseKey, 10);
                 SessionState.SetInt(WaitKey, 3);
             }
             else if (phase == 10)
             {
+                ui.OpenSettingsMenu(UIState.MainMenu);
                 Debug.Log($"[MENU TEST STEP 1B - SETTINGS] State={ui.currentState} | TimeScale={Time.timeScale}");
                 ui.SetConfiguredLives(3);
                 ui.StartNewGameFromMenu();
@@ -98,10 +98,16 @@ namespace GravityDrift.Editor
             {
                 int pCnt = procQ.CalculateEntityCount();
                 int dCnt = droneQ.CalculateEntityCount();
-                var lvlBadge = GameObject.Find("GravityDrift_UI_Canvas/GameplayHUD/TopLeftPanel/LevelBadge")?.GetComponent<TMPro.TextMeshProUGUI>()?.text;
-                var livesBadge = GameObject.Find("GravityDrift_UI_Canvas/GameplayHUD/TopLeftPanel/LivesBadge")?.GetComponent<TMPro.TextMeshProUGUI>()?.text;
+                var sectorTxt = GameObject.Find("GravityDrift_UI_Canvas/GameplayHUD/ObjectivesOverlay/SectorStatusText")?.GetComponent<TMPro.TextMeshProUGUI>()?.text;
+                var reqSwTxt = GameObject.Find("GravityDrift_UI_Canvas/GameplayHUD/ObjectivesOverlay/ReqSwitchText")?.GetComponent<TMPro.TextMeshProUGUI>()?.text;
+                var reqCoresTxt = GameObject.Find("GravityDrift_UI_Canvas/GameplayHUD/ObjectivesOverlay/ReqCoresText")?.GetComponent<TMPro.TextMeshProUGUI>()?.text;
+                var reqAirTxt = GameObject.Find("GravityDrift_UI_Canvas/GameplayHUD/ObjectivesOverlay/ReqAirlockText")?.GetComponent<TMPro.TextMeshProUGUI>()?.text;
+                var optTxt = GameObject.Find("GravityDrift_UI_Canvas/GameplayHUD/ObjectivesOverlay/OptDronesText")?.GetComponent<TMPro.TextMeshProUGUI>()?.text;
+                bool hasOldBoxes = GameObject.Find("GravityDrift_UI_Canvas/GameplayHUD/TopLeftPanel") != null || GameObject.Find("GravityDrift_UI_Canvas/GameplayHUD/TopRightPanel") != null;
+                var gravArrow = GameObject.Find("GravityDrift_UI_Canvas/GameplayHUD/BottomTacticalStrip/GravityVectorBox/ArrowHolder/GravityArrow")?.GetComponent<RectTransform>();
+                bool arrowStatic = gravArrow != null && gravArrow.anchoredPosition == Vector2.zero && gravArrow.localScale == Vector3.one;
                 bool dbgVisible = GameObject.Find("GravityDrift_Debug_Canvas/DebugTelemetryCard")?.activeSelf ?? false;
-                Debug.Log($"[MENU TEST STEP 2 - PLAY] State={ui.currentState} | TimeScale={Time.timeScale} | ProcEntities={pCnt} | Drones={dCnt} | DebugVisible={dbgVisible} | Lvl='{lvlBadge}' | Lives='{livesBadge}'");
+                Debug.Log($"[MENU TEST STEP 2 - PLAY] State={ui.currentState} | TimeScale={Time.timeScale} | OldBoxes={hasOldBoxes} | ArrowStatic={arrowStatic} | DebugVisible={dbgVisible} | Sector='{sectorTxt}' | Sw='{reqSwTxt}' | Cores='{reqCoresTxt}' | Air='{reqAirTxt}' | Opt='{optTxt}'");
                 string hudPng = Path.Combine(Application.dataPath, "../Telemetry/UI_GameplayHUD_Preview.png");
                 ScreenCapture.CaptureScreenshot(hudPng);
 

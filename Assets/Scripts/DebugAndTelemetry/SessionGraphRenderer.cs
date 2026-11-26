@@ -1,76 +1,101 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
 namespace GravityDrift
 {
     /// <summary>
-    /// Future-minimalist Texture2D chart rasterizer for the in-game Game Report & Graphs panel.
-    /// Renders three live telemetry charts from SessionReportRecorder:
-    /// 1) Levels Played & Progression (Clears/Deaths + Clear Timer)
-    /// 2) AI Improvement Per Input (Posterior Confidence, Inverse Entropy Precision, Drone Improvement %)
-    /// 3) Death Rate & Improvement (Cumulative Death Rate % vs AI Improvement % & Crate-Dodge Skill %)
+    /// Simple MATLAB-style Texture2D figure rasterizer for the in-game Session Report:
+    /// Classic white figure paper, closed black axes frame, dotted light-grey gridlines,
+    /// crisp bitmap tick labels, X-axis/Y-axis unit readouts, and sample count (n = ...).
+    /// Plots:
+    /// 1) Levels Played & Progression (Y: Room Time s & Complexity %, X: Attempt #, n = attempts)
+    /// 2) AI Metrics Per Input (Y: 0-100%, X: Input Event #, n = inputs)
+    /// 3) Death Rate & AI Improvement (Y: 0-100%, X: Level Attempt #, n = attempts)
     /// </summary>
     public static class SessionGraphRenderer
     {
-        private static readonly Color32 ChartBg      = new Color32(14, 18, 26, 255);
-        private static readonly Color32 ChartGrid    = new Color32(34, 44, 58, 255);
-        private static readonly Color32 ChartAxis    = new Color32(95, 112, 134, 255);
-        private static readonly Color32 SkyBlue      = new Color32(56, 189, 248, 255);
-        private static readonly Color32 CyanGlow     = new Color32(0, 229, 255, 255);
-        private static readonly Color32 MintGreen    = new Color32(34, 197, 94, 255);
-        private static readonly Color32 DangerRed    = new Color32(239, 68, 68, 255);
-        private static readonly Color32 AmberGold    = new Color32(245, 158, 11, 255);
-        private static readonly Color32 SlateFill    = new Color32(42, 52, 68, 255);
+        // Classic MATLAB figure colors on clean white paper
+        private static readonly Color32 PaperWhite   = new Color32(255, 255, 255, 255);
+        private static readonly Color32 AxisBlack    = new Color32(0, 0, 0, 255);
+        private static readonly Color32 GridGrey     = new Color32(212, 212, 212, 255);
+        private static readonly Color32 SubtleGrey   = new Color32(120, 120, 120, 255);
+        private static readonly Color32 MatlabBlue   = new Color32(0, 114, 189, 255);
+        private static readonly Color32 MatlabOrange = new Color32(217, 83, 25, 255);
+        private static readonly Color32 MatlabGreen  = new Color32(44, 160, 44, 255);
+        private static readonly Color32 MatlabRed    = new Color32(204, 37, 41, 255);
+        private static readonly Color32 BarGreenFill = new Color32(198, 232, 198, 255);
+        private static readonly Color32 BarRedFill   = new Color32(246, 202, 202, 255);
+        private static readonly Color32 BarBlueFill  = new Color32(204, 227, 243, 255);
+
+        private const int PadL = 58;
+        private const int PadR = 16;
+        private const int PadT = 24;
+        private const int PadB = 34;
 
         public static void RenderLevelsChart(Texture2D tex, IReadOnlyList<SessionLevelRecord> rows)
         {
             if (tex == null) return;
             int w = tex.width, h = tex.height;
-            var px = InitGridFrame(w, h);
+            int plotW = w - PadL - PadR;
+            int plotH = h - PadT - PadB;
+            int baseY = PadB;
 
-            int padL = 36, padR = 16, padT = 16, padB = 26;
-            int plotW = w - padL - padR;
-            int plotH = h - padT - padB;
-            int baseY = padB;
+            var px = InitMatlabAxes(w, h);
+            int n = rows != null ? rows.Count : 0;
 
-            if (rows == null || rows.Count == 0)
-            {
-                DrawBaselineHint(px, w, h, padL, baseY, plotW, plotH, SkyBlue);
-                Commit(tex, px);
-                return;
-            }
-
-            float maxTimer = 5f;
-            float maxComp = 120f;
-            for (int i = 0; i < rows.Count; i++)
+            float maxTimer = 10f;
+            float maxComp = 100f;
+            for (int i = 0; i < n; i++)
             {
                 if (rows[i].room_timer_sec > maxTimer) maxTimer = rows[i].room_timer_sec;
                 if (rows[i].complexity_score > maxComp) maxComp = rows[i].complexity_score;
             }
             maxTimer = Mathf.Ceil(maxTimer / 5f) * 5f;
+            maxComp = Mathf.Max(100f, Mathf.Ceil(maxComp / 25f) * 25f);
 
-            int n = rows.Count;
-            float slotW = (float)plotW / Mathf.Max(1, n);
-            int barW = Mathf.Clamp(Mathf.RoundToInt(slotW * 0.44f), 8, 34);
+            // Y-axis ticks (0..maxTimer s)
+            for (int k = 0; k <= 4; k++)
+            {
+                int y = baseY + Mathf.RoundToInt((k / 4f) * plotH);
+                float tickVal = (k / 4f) * maxTimer;
+                string lbl = tickVal >= 10f ? $"{tickVal:F0}S" : $"{tickVal:F1}S";
+                DrawTextRight(px, w, h, PadL - 6, y - 3, lbl, AxisBlack);
+            }
+
+            // Header badge inside top margin: sample count
+            DrawText(px, w, h, PadL, h - 14, $"N = {n} ATTEMPTS", AxisBlack);
+            DrawTextRight(px, w, h, w - PadR, h - 14, $"Y MAX = {maxTimer:F0}S", SubtleGrey);
+
+            if (n == 0)
+            {
+                DrawCenteredEmptyNote(px, w, h, PadL, baseY, plotW, plotH, "NO SAMPLES RECORDED (N = 0)");
+                DrawText(px, w, h, PadL + plotW / 2 - 42, 8, "ATTEMPT INDEX", AxisBlack);
+                Commit(tex, px);
+                return;
+            }
+
+            float slotW = (float)plotW / n;
+            int barW = Mathf.Clamp(Mathf.RoundToInt(slotW * 0.48f), 8, 34);
 
             var timerPts = new Vector2[n];
             var compPts = new Vector2[n];
             for (int i = 0; i < n; i++)
             {
                 var r = rows[i];
-                float cx = padL + (i + 0.5f) * slotW;
+                float cx = PadL + (i + 0.5f) * slotW;
                 int xLeft = Mathf.RoundToInt(cx - barW * 0.5f);
 
-                // Bar height represents RoomTimer / maxTimer (at least 18% visible for Outcome badge)
-                float frac = Mathf.Clamp(r.room_timer_sec / maxTimer, 0.14f, 1f);
-                int barH = Mathf.Max(10, Mathf.RoundToInt(frac * plotH));
+                float frac = Mathf.Clamp(r.room_timer_sec / maxTimer, 0.12f, 1f);
+                int barH = Mathf.Max(6, Mathf.RoundToInt(frac * plotH));
 
-                Color32 barCol = r.outcome == "Death_Tagged" ? DangerRed
-                               : (r.room_cleared || r.outcome == "Cleared" ? MintGreen : SkyBlue);
-                Color32 fillCol = new Color32(barCol.r, barCol.g, barCol.b, 130);
+                bool isDeath = r.outcome == "Death_Tagged";
+                bool isCleared = r.room_cleared || r.outcome == "Cleared";
+                Color32 edgeCol = isDeath ? MatlabRed : (isCleared ? MatlabGreen : MatlabBlue);
+                Color32 fillCol = isDeath ? BarRedFill : (isCleared ? BarGreenFill : BarBlueFill);
 
-                FillRect(px, w, h, xLeft, baseY, barW, barH, Blend(ChartBg, fillCol));
-                DrawRectOutline(px, w, h, xLeft, baseY, barW, barH, barCol);
+                FillRect(px, w, h, xLeft, baseY + 1, barW, barH, fillCol);
+                DrawRectOutline(px, w, h, xLeft, baseY + 1, barW, barH, edgeCol);
 
                 float ty = baseY + Mathf.Clamp01(r.room_timer_sec / maxTimer) * plotH;
                 timerPts[i] = new Vector2(cx, ty);
@@ -79,15 +104,18 @@ namespace GravityDrift
                 compPts[i] = new Vector2(cx, cy);
             }
 
+            DrawSeriesXAxisTicks(px, w, h, PadL, baseY, plotW, n, centerBars: true);
+            DrawText(px, w, h, PadL + plotW / 2 - 48, 8, "ATTEMPT INDEX (N)", AxisBlack);
+
             for (int i = 0; i < n - 1; i++)
             {
-                DrawThickLine(px, w, h, compPts[i].x, compPts[i].y, compPts[i + 1].x, compPts[i + 1].y, 2.0f, AmberGold);
-                DrawThickLine(px, w, h, timerPts[i].x, timerPts[i].y, timerPts[i + 1].x, timerPts[i + 1].y, 2.2f, CyanGlow);
+                DrawThickLine(px, w, h, compPts[i].x, compPts[i].y, compPts[i + 1].x, compPts[i + 1].y, 2.0f, MatlabOrange);
+                DrawThickLine(px, w, h, timerPts[i].x, timerPts[i].y, timerPts[i + 1].x, timerPts[i + 1].y, 2.2f, MatlabBlue);
             }
             for (int i = 0; i < n; i++)
             {
-                DrawCircle(px, w, h, compPts[i].x, compPts[i].y, 4.0f, AmberGold);
-                DrawCircle(px, w, h, timerPts[i].x, timerPts[i].y, 4.5f, CyanGlow);
+                DrawCircle(px, w, h, compPts[i].x, compPts[i].y, 3.6f, MatlabOrange);
+                DrawCircle(px, w, h, timerPts[i].x, timerPts[i].y, 4.0f, MatlabBlue);
             }
 
             Commit(tex, px);
@@ -97,21 +125,25 @@ namespace GravityDrift
         {
             if (tex == null) return;
             int w = tex.width, h = tex.height;
-            var px = InitGridFrame(w, h);
+            int plotW = w - PadL - PadR;
+            int plotH = h - PadT - PadB;
+            int baseY = PadB;
 
-            int padL = 36, padR = 16, padT = 16, padB = 26;
-            int plotW = w - padL - padR;
-            int plotH = h - padT - padB;
-            int baseY = padB;
+            var px = InitMatlabAxes(w, h);
+            DrawPercentYTicks(px, w, h, baseY, plotH);
 
-            if (eventsList == null || eventsList.Count == 0)
+            int n = eventsList != null ? eventsList.Count : 0;
+            DrawText(px, w, h, PadL, h - 14, $"N = {n} INPUTS", AxisBlack);
+            DrawTextRight(px, w, h, w - PadR, h - 14, "SCALE: 0-100%", SubtleGrey);
+
+            if (n == 0)
             {
-                DrawBaselineHint(px, w, h, padL, baseY, plotW, plotH, AmberGold);
+                DrawCenteredEmptyNote(px, w, h, PadL, baseY, plotW, plotH, "NO SAMPLES RECORDED (N = 0)");
+                DrawText(px, w, h, PadL + plotW / 2 - 48, 8, "INPUT EVENT INDEX", AxisBlack);
                 Commit(tex, px);
                 return;
             }
 
-            int n = eventsList.Count;
             var ptsConf = new Vector2[n];
             var ptsPrec = new Vector2[n];
             var ptsImp  = new Vector2[n];
@@ -120,7 +152,7 @@ namespace GravityDrift
             for (int i = 0; i < n; i++)
             {
                 var e = eventsList[i];
-                float x = (n == 1) ? (padL + plotW * 0.5f) : (padL + ((float)i / (n - 1)) * plotW);
+                float x = (n == 1) ? (PadL + plotW * 0.5f) : (PadL + ((float)i / (n - 1)) * plotW);
 
                 float confPct = Mathf.Clamp01(e.top_cluster_confidence);
                 float precisionPct = Mathf.Clamp01(1f - (e.posterior_entropy / 5.2f) + Mathf.Max(0f, e.entropy_reduction) * 0.25f);
@@ -133,26 +165,28 @@ namespace GravityDrift
                 ptsPat[i]  = new Vector2(x, baseY + patPct * plotH);
             }
 
+            DrawSeriesXAxisTicks(px, w, h, PadL, baseY, plotW, n, centerBars: false);
+            DrawText(px, w, h, PadL + plotW / 2 - 54, 8, "INPUT EVENT # (N)", AxisBlack);
+
             for (int i = 0; i < n - 1; i++)
             {
-                DrawThickLine(px, w, h, ptsPat[i].x,  ptsPat[i].y,  ptsPat[i + 1].x,  ptsPat[i + 1].y,  1.8f, CyanGlow);
-                DrawThickLine(px, w, h, ptsImp[i].x,  ptsImp[i].y,  ptsImp[i + 1].x,  ptsImp[i + 1].y,  2.0f, MintGreen);
-                DrawThickLine(px, w, h, ptsPrec[i].x, ptsPrec[i].y, ptsPrec[i + 1].x, ptsPrec[i + 1].y, 1.8f, AmberGold);
-                DrawThickLine(px, w, h, ptsConf[i].x, ptsConf[i].y, ptsConf[i + 1].x, ptsConf[i + 1].y, 2.5f, SkyBlue);
+                DrawThickLine(px, w, h, ptsPat[i].x,  ptsPat[i].y,  ptsPat[i + 1].x,  ptsPat[i + 1].y,  1.8f, AxisBlack);
+                DrawThickLine(px, w, h, ptsImp[i].x,  ptsImp[i].y,  ptsImp[i + 1].x,  ptsImp[i + 1].y,  2.0f, MatlabGreen);
+                DrawThickLine(px, w, h, ptsPrec[i].x, ptsPrec[i].y, ptsPrec[i + 1].x, ptsPrec[i + 1].y, 1.8f, MatlabOrange);
+                DrawThickLine(px, w, h, ptsConf[i].x, ptsConf[i].y, ptsConf[i + 1].x, ptsConf[i + 1].y, 2.2f, MatlabBlue);
             }
 
-            // Highlight tactical evade/crate-attack events cleanly along curves
-            int stepDot = Mathf.Max(1, n / 28);
+            int stepDot = Mathf.Max(1, n / 24);
             for (int i = 0; i < n; i++)
             {
                 var e = eventsList[i];
                 if (e.drone_action == "EvadeCrateDodge")
                 {
-                    DrawCircle(px, w, h, ptsImp[i].x, ptsImp[i].y, 4.2f, AmberGold);
+                    DrawCircle(px, w, h, ptsImp[i].x, ptsImp[i].y, 4.0f, MatlabOrange);
                 }
                 else if (i % stepDot == 0 || i == n - 1)
                 {
-                    DrawCircle(px, w, h, ptsConf[i].x, ptsConf[i].y, 3.2f, SkyBlue);
+                    DrawCircle(px, w, h, ptsConf[i].x, ptsConf[i].y, 3.0f, MatlabBlue);
                 }
             }
 
@@ -163,21 +197,25 @@ namespace GravityDrift
         {
             if (tex == null) return;
             int w = tex.width, h = tex.height;
-            var px = InitGridFrame(w, h);
+            int plotW = w - PadL - PadR;
+            int plotH = h - PadT - PadB;
+            int baseY = PadB;
 
-            int padL = 36, padR = 16, padT = 16, padB = 26;
-            int plotW = w - padL - padR;
-            int plotH = h - padT - padB;
-            int baseY = padB;
+            var px = InitMatlabAxes(w, h);
+            DrawPercentYTicks(px, w, h, baseY, plotH);
 
-            if (rows == null || rows.Count == 0)
+            int n = rows != null ? rows.Count : 0;
+            DrawText(px, w, h, PadL, h - 14, $"N = {n} LEVELS", AxisBlack);
+            DrawTextRight(px, w, h, w - PadR, h - 14, "SCALE: 0-100%", SubtleGrey);
+
+            if (n == 0)
             {
-                DrawBaselineHint(px, w, h, padL, baseY, plotW, plotH, DangerRed);
+                DrawCenteredEmptyNote(px, w, h, PadL, baseY, plotW, plotH, "NO SAMPLES RECORDED (N = 0)");
+                DrawText(px, w, h, PadL + plotW / 2 - 42, 8, "LEVEL INDEX (N)", AxisBlack);
                 Commit(tex, px);
                 return;
             }
 
-            int n = rows.Count;
             var ptsDeath = new Vector2[n];
             var ptsImp   = new Vector2[n];
             var ptsDodge = new Vector2[n];
@@ -185,83 +223,103 @@ namespace GravityDrift
             for (int i = 0; i < n; i++)
             {
                 var r = rows[i];
-                float x = (n == 1) ? (padL + plotW * 0.5f) : (padL + ((float)i / (n - 1)) * plotW);
+                float x = (n == 1) ? (PadL + plotW * 0.5f) : (PadL + ((float)i / (n - 1)) * plotW);
                 ptsDeath[i] = new Vector2(x, baseY + Mathf.Clamp01(r.cumulative_death_rate_pct / 100f) * plotH);
                 ptsImp[i]   = new Vector2(x, baseY + Mathf.Clamp01(r.drone_improvement_pct / 100f) * plotH);
                 ptsDodge[i] = new Vector2(x, baseY + Mathf.Clamp01(r.crate_dodge_skill) * plotH);
             }
 
+            DrawSeriesXAxisTicks(px, w, h, PadL, baseY, plotW, n, centerBars: false);
+            DrawText(px, w, h, PadL + plotW / 2 - 48, 8, "LEVEL ATTEMPT (N)", AxisBlack);
+
             for (int i = 0; i < n - 1; i++)
             {
-                DrawThickLine(px, w, h, ptsDodge[i].x, ptsDodge[i].y, ptsDodge[i + 1].x, ptsDodge[i + 1].y, 2.0f, MintGreen);
-                DrawThickLine(px, w, h, ptsImp[i].x,   ptsImp[i].y,   ptsImp[i + 1].x,   ptsImp[i + 1].y,   2.5f, SkyBlue);
-                DrawThickLine(px, w, h, ptsDeath[i].x, ptsDeath[i].y, ptsDeath[i + 1].x, ptsDeath[i + 1].y, 2.5f, DangerRed);
+                DrawThickLine(px, w, h, ptsDodge[i].x, ptsDodge[i].y, ptsDodge[i + 1].x, ptsDodge[i + 1].y, 2.0f, MatlabGreen);
+                DrawThickLine(px, w, h, ptsImp[i].x,   ptsImp[i].y,   ptsImp[i + 1].x,   ptsImp[i + 1].y,   2.2f, MatlabBlue);
+                DrawThickLine(px, w, h, ptsDeath[i].x, ptsDeath[i].y, ptsDeath[i + 1].x, ptsDeath[i + 1].y, 2.2f, MatlabRed);
             }
             for (int i = 0; i < n; i++)
             {
-                DrawCircle(px, w, h, ptsDodge[i].x, ptsDodge[i].y, 3.8f, MintGreen);
-                DrawCircle(px, w, h, ptsImp[i].x,   ptsImp[i].y,   4.2f, SkyBlue);
-                DrawCircle(px, w, h, ptsDeath[i].x, ptsDeath[i].y, 4.2f, DangerRed);
+                DrawCircle(px, w, h, ptsDodge[i].x, ptsDodge[i].y, 3.6f, MatlabGreen);
+                DrawCircle(px, w, h, ptsImp[i].x,   ptsImp[i].y,   4.0f, MatlabBlue);
+                DrawCircle(px, w, h, ptsDeath[i].x, ptsDeath[i].y, 4.0f, MatlabRed);
             }
 
             Commit(tex, px);
         }
 
-        private static Color32[] InitGridFrame(int w, int h)
+        private static Color32[] InitMatlabAxes(int w, int h)
         {
             var px = new Color32[w * h];
-            for (int i = 0; i < px.Length; i++) px[i] = ChartBg;
+            for (int i = 0; i < px.Length; i++) px[i] = PaperWhite;
 
-            int padL = 36, padR = 16, padT = 16, padB = 26;
-            int plotW = w - padL - padR;
-            int plotH = h - padT - padB;
+            int plotW = w - PadL - PadR;
+            int plotH = h - PadT - PadB;
 
-            // Horizontal dashed gridlines at 0%, 25%, 50%, 75%, 100%
+            // Dotted horizontal gridlines + inward ticks at 0%, 25%, 50%, 75%, 100%
             for (int k = 0; k <= 4; k++)
             {
-                int y = padB + Mathf.RoundToInt((k / 4f) * plotH);
-                for (int x = padL; x <= padL + plotW; x++)
+                int y = PadB + Mathf.RoundToInt((k / 4f) * plotH);
+                if (k > 0 && k < 4)
                 {
-                    if (k == 0 || ((x / 5) % 2 == 0))
+                    for (int x = PadL + 1; x < PadL + plotW; x++)
                     {
-                        SetPx(px, w, h, x, y, k == 0 ? ChartAxis : ChartGrid);
+                        if ((x % 4) == 0) SetPx(px, w, h, x, y, GridGrey);
                     }
+                }
+                for (int t = 0; t < 4; t++)
+                {
+                    SetPx(px, w, h, PadL + t, y, AxisBlack);
+                    SetPx(px, w, h, PadL + plotW - t, y, AxisBlack);
                 }
             }
 
-            // Left Y-axis
-            for (int y = padB; y <= padB + plotH; y++)
-            {
-                SetPx(px, w, h, padL, y, ChartAxis);
-            }
-
+            // Closed MATLAB axes box (1px black)
+            DrawRectOutline(px, w, h, PadL, PadB, plotW + 1, plotH + 1, AxisBlack);
             return px;
         }
 
-        private static void DrawBaselineHint(Color32[] px, int w, int h, int x0, int y0, int pw, int ph, Color32 accent)
+        private static void DrawPercentYTicks(Color32[] px, int w, int h, int baseY, int plotH)
         {
-            int midY = y0 + ph / 2;
-            for (int x = x0 + 8; x < x0 + pw - 8; x += 6)
+            for (int k = 0; k <= 4; k++)
             {
-                SetPx(px, w, h, x, midY, SlateFill);
-                SetPx(px, w, h, x + 1, midY, accent);
+                int y = baseY + Mathf.RoundToInt((k / 4f) * plotH);
+                DrawTextRight(px, w, h, PadL - 6, y - 3, $"{k * 25}%", AxisBlack);
             }
+        }
+
+        private static void DrawSeriesXAxisTicks(Color32[] px, int w, int h, int padL, int baseY, int plotW, int n, bool centerBars)
+        {
+            if (n <= 0) return;
+
+            int maxTicks = 6;
+            int step = Mathf.Max(1, Mathf.CeilToInt((float)n / maxTicks));
+            for (int i = 0; i < n; i++)
+            {
+                bool drawLabel = (i == 0) || (i == n - 1) || ((i + 1) % step == 0);
+                if (!drawLabel) continue;
+
+                float fx = centerBars
+                    ? (padL + ((i + 0.5f) / n) * plotW)
+                    : ((n == 1) ? (padL + plotW * 0.5f) : (padL + ((float)i / (n - 1)) * plotW));
+
+                int x = Mathf.RoundToInt(fx);
+                for (int ty = 0; ty < 4; ty++) SetPx(px, w, h, x, baseY + ty, AxisBlack);
+
+                string num = (i + 1).ToString();
+                DrawTextCentered(px, w, h, x, baseY - 12, num, AxisBlack);
+            }
+        }
+
+        private static void DrawCenteredEmptyNote(Color32[] px, int w, int h, int x0, int y0, int pw, int ph, string msg)
+        {
+            DrawTextCentered(px, w, h, x0 + pw / 2, y0 + ph / 2 - 4, msg, SubtleGrey);
         }
 
         private static void Commit(Texture2D tex, Color32[] px)
         {
             tex.SetPixels32(px);
             tex.Apply();
-        }
-
-        private static Color32 Blend(Color32 dst, Color32 src)
-        {
-            float a = src.a / 255f;
-            return new Color32(
-                (byte)Mathf.RoundToInt(dst.r * (1f - a) + src.r * a),
-                (byte)Mathf.RoundToInt(dst.g * (1f - a) + src.g * a),
-                (byte)Mathf.RoundToInt(dst.b * (1f - a) + src.b * a),
-                255);
         }
 
         private static void FillRect(Color32[] px, int w, int h, int x0, int y0, int rw, int rh, Color32 col)
@@ -317,6 +375,102 @@ namespace GravityDrift
         private static void SetPx(Color32[] px, int w, int h, int x, int y, Color32 col)
         {
             if (x >= 0 && x < w && y >= 0 && y < h) px[y * w + x] = col;
+        }
+
+        // =========================================================================
+        // COMPACT 4x6 PIXEL FONT FOR CRISP MATLAB AXIS NUMBERS & LABELS
+        // =========================================================================
+        private static void DrawTextCentered(Color32[] px, int w, int h, int cx, int y, string text, Color32 col)
+        {
+            int totalW = string.IsNullOrEmpty(text) ? 0 : (text.Length * 5 - 1);
+            DrawText(px, w, h, cx - totalW / 2, y, text, col);
+        }
+
+        private static void DrawTextRight(Color32[] px, int w, int h, int rightX, int y, string text, Color32 col)
+        {
+            int totalW = string.IsNullOrEmpty(text) ? 0 : (text.Length * 5 - 1);
+            DrawText(px, w, h, rightX - totalW, y, text, col);
+        }
+
+        private static void DrawText(Color32[] px, int w, int h, int startX, int startY, string text, Color32 col)
+        {
+            if (string.IsNullOrEmpty(text)) return;
+            string upper = text.ToUpperInvariant();
+            int cursorX = startX;
+            for (int i = 0; i < upper.Length; i++)
+            {
+                byte[] rows = GetGlyph4x6(upper[i]);
+                if (rows != null)
+                {
+                    for (int r = 0; r < 6; r++)
+                    {
+                        byte mask = rows[5 - r]; // y=0 is bottom in Texture2D
+                        for (int c = 0; c < 4; c++)
+                        {
+                            if ((mask & (1 << (3 - c))) != 0)
+                            {
+                                SetPx(px, w, h, cursorX + c, startY + r, col);
+                            }
+                        }
+                    }
+                }
+                cursorX += 5;
+            }
+        }
+
+        private static byte[] GetGlyph4x6(char ch)
+        {
+            switch (ch)
+            {
+                case '0': return new byte[] { 0x6, 0x9, 0x9, 0x9, 0x9, 0x6 };
+                case '1': return new byte[] { 0x2, 0x6, 0x2, 0x2, 0x2, 0x7 };
+                case '2': return new byte[] { 0x6, 0x9, 0x1, 0x2, 0x4, 0xF };
+                case '3': return new byte[] { 0xE, 0x1, 0x6, 0x1, 0x1, 0xE };
+                case '4': return new byte[] { 0x2, 0x6, 0xA, 0xF, 0x2, 0x2 };
+                case '5': return new byte[] { 0xF, 0x8, 0xE, 0x1, 0x1, 0xE };
+                case '6': return new byte[] { 0x6, 0x8, 0xE, 0x9, 0x9, 0x6 };
+                case '7': return new byte[] { 0xF, 0x1, 0x2, 0x4, 0x4, 0x4 };
+                case '8': return new byte[] { 0x6, 0x9, 0x6, 0x9, 0x9, 0x6 };
+                case '9': return new byte[] { 0x6, 0x9, 0x9, 0x7, 0x1, 0x6 };
+                case 'A': return new byte[] { 0x6, 0x9, 0x9, 0xF, 0x9, 0x9 };
+                case 'B': return new byte[] { 0xE, 0x9, 0xE, 0x9, 0x9, 0xE };
+                case 'C': return new byte[] { 0x7, 0x8, 0x8, 0x8, 0x8, 0x7 };
+                case 'D': return new byte[] { 0xE, 0x9, 0x9, 0x9, 0x9, 0xE };
+                case 'E': return new byte[] { 0xF, 0x8, 0xE, 0x8, 0x8, 0xF };
+                case 'F': return new byte[] { 0xF, 0x8, 0xE, 0x8, 0x8, 0x8 };
+                case 'G': return new byte[] { 0x7, 0x8, 0xB, 0x9, 0x9, 0x7 };
+                case 'H': return new byte[] { 0x9, 0x9, 0xF, 0x9, 0x9, 0x9 };
+                case 'I': return new byte[] { 0x7, 0x2, 0x2, 0x2, 0x2, 0x7 };
+                case 'J': return new byte[] { 0x1, 0x1, 0x1, 0x1, 0x9, 0x6 };
+                case 'K': return new byte[] { 0x9, 0xA, 0xC, 0xA, 0x9, 0x9 };
+                case 'L': return new byte[] { 0x8, 0x8, 0x8, 0x8, 0x8, 0xF };
+                case 'M': return new byte[] { 0x9, 0xF, 0xF, 0x9, 0x9, 0x9 };
+                case 'N': return new byte[] { 0x9, 0xD, 0xB, 0x9, 0x9, 0x9 };
+                case 'O': return new byte[] { 0x6, 0x9, 0x9, 0x9, 0x9, 0x6 };
+                case 'P': return new byte[] { 0xE, 0x9, 0xE, 0x8, 0x8, 0x8 };
+                case 'Q': return new byte[] { 0x6, 0x9, 0x9, 0xB, 0xA, 0x5 };
+                case 'R': return new byte[] { 0xE, 0x9, 0xE, 0xC, 0xA, 0x9 };
+                case 'S': return new byte[] { 0x7, 0x8, 0x6, 0x1, 0x1, 0xE };
+                case 'T': return new byte[] { 0xF, 0x2, 0x2, 0x2, 0x2, 0x2 };
+                case 'U': return new byte[] { 0x9, 0x9, 0x9, 0x9, 0x9, 0x6 };
+                case 'V': return new byte[] { 0x9, 0x9, 0x9, 0x9, 0x6, 0x6 };
+                case 'W': return new byte[] { 0x9, 0x9, 0x9, 0xF, 0xF, 0x9 };
+                case 'X': return new byte[] { 0x9, 0x9, 0x6, 0x6, 0x9, 0x9 };
+                case 'Y': return new byte[] { 0x9, 0x9, 0x6, 0x2, 0x2, 0x2 };
+                case 'Z': return new byte[] { 0xF, 0x1, 0x2, 0x4, 0x8, 0xF };
+                case '.': return new byte[] { 0x0, 0x0, 0x0, 0x0, 0x0, 0x2 };
+                case ',': return new byte[] { 0x0, 0x0, 0x0, 0x0, 0x2, 0x4 };
+                case ':': return new byte[] { 0x0, 0x2, 0x0, 0x2, 0x0, 0x0 };
+                case '-': return new byte[] { 0x0, 0x0, 0xE, 0x0, 0x0, 0x0 };
+                case '+': return new byte[] { 0x0, 0x2, 0x7, 0x2, 0x0, 0x0 };
+                case '=': return new byte[] { 0x0, 0xE, 0x0, 0xE, 0x0, 0x0 };
+                case '/': return new byte[] { 0x1, 0x1, 0x2, 0x4, 0x8, 0x8 };
+                case '%': return new byte[] { 0x9, 0x2, 0x2, 0x4, 0x4, 0x9 };
+                case '(': return new byte[] { 0x2, 0x4, 0x4, 0x4, 0x4, 0x2 };
+                case ')': return new byte[] { 0x4, 0x2, 0x2, 0x2, 0x2, 0x4 };
+                case '#': return new byte[] { 0x5, 0xF, 0x5, 0x5, 0xF, 0x5 };
+                default:  return null;
+            }
         }
     }
 }

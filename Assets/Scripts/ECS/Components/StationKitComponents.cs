@@ -9,6 +9,11 @@ namespace GravityDrift
 
     public struct CargoCrateTag : IComponentData
     {
+        public float3 PrePhysicsVelocity;
+        public float3 PendingImpactVelocity;
+        public float3 PendingImpactTargetPos;
+        public float PendingImpactTimer;
+        public bool HasPendingImpact;
     }
 
     public struct HazardPadTag : IComponentData

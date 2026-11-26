@@ -31,6 +31,7 @@ namespace GravityDrift
         private readonly List<GameObject> spawnedVfxList = new List<GameObject>();
         private Coroutine deathRespawnCoroutine;
         private bool isDeathSequenceRunning = false;
+        private bool runOverOpenedForRun = false;
 
         private bool prevSwitchFlipped = false;
         private bool prevAirlockUnlocked = false;
@@ -173,6 +174,7 @@ namespace GravityDrift
                     CurrentPlayerAction = PlayerActionType.Idle,
                     MaxLives = 5,
                     LivesRemaining = 5,
+                    LevelStartGraceTimer = 0f,
                     RespawnGraceTimer = 0f,
                     IsRespawning = false,
                     PendingDeathSequence = false,
@@ -360,6 +362,7 @@ namespace GravityDrift
         {
             InitializeECS();
             AbortDeathRespawnSequence();
+            runOverOpenedForRun = false;
             int clamped = math.clamp(maxLives, 3, 5);
             var objQuery = em.CreateEntityQuery(typeof(LevelObjectiveState));
             if (objQuery.CalculateEntityCount() > 0)
@@ -368,6 +371,7 @@ namespace GravityDrift
                 var lvl = em.GetComponentData<LevelObjectiveState>(objArr[0]);
                 lvl.MaxLives = clamped;
                 lvl.LivesRemaining = clamped;
+                lvl.LevelStartGraceTimer = 0f;
                 lvl.RespawnGraceTimer = 0f;
                 lvl.IsRespawning = false;
                 lvl.PendingDeathSequence = false;
@@ -393,6 +397,7 @@ namespace GravityDrift
         {
             InitializeECS();
             AbortDeathRespawnSequence();
+            runOverOpenedForRun = false;
             ResetAudioEdgeTrackers();
             ClearProceduralEntities();
 
@@ -411,6 +416,7 @@ namespace GravityDrift
                 lvl.HazardWarningTimer = 0f;
                 lvl.CurrentPlayerAction = PlayerActionType.Idle;
                 lvl.LivesRemaining = math.max(3, lvl.MaxLives);
+                lvl.LevelStartGraceTimer = 0f;
                 lvl.RespawnGraceTimer = 0f;
                 lvl.IsRespawning = false;
                 lvl.PendingDeathSequence = false;
@@ -494,14 +500,48 @@ namespace GravityDrift
                 {
                     state.LivesRemaining = state.MaxLives;
                 }
+                state.LevelStartGraceTimer = 1.0f;
                 state.RespawnGraceTimer = 0f;
                 state.IsRespawning = false;
                 state.PendingDeathSequence = false;
                 state.IsRunOver = false;
                 state.IsRunCompleted = false;
+                runOverOpenedForRun = false;
                 em.SetComponentData(objEntity, state);
             }
             objQuery.Dispose();
+
+            // Reset physics & player gravity direction/charges between levels
+            var stepQuery = em.CreateEntityQuery(typeof(PhysicsStep));
+            if (stepQuery.CalculateEntityCount() > 0)
+            {
+                using var stepEntities = stepQuery.ToEntityArray(Allocator.Temp);
+                em.SetComponentData(stepEntities[0], new PhysicsStep
+                {
+                    Gravity = new float3(0f, -25f, 0f)
+                });
+            }
+            stepQuery.Dispose();
+
+            var gravQuery = em.CreateEntityQuery(typeof(GravityState));
+            if (gravQuery.CalculateEntityCount() > 0)
+            {
+                using var gravEntities = gravQuery.ToEntityArray(Allocator.Temp);
+                var gState = em.GetComponentData<GravityState>(gravEntities[0]);
+                float mag = gState.GravityMagnitude > 0.1f ? gState.GravityMagnitude : 25f;
+                int maxCharges = gState.MaxCharges > 0 ? gState.MaxCharges : 3;
+                gState.CurrentDirection = GravityDirection.Down;
+                gState.PreviousDirection = GravityDirection.Down;
+                gState.GravityMagnitude = mag;
+                gState.GravityVector = new float3(0f, -mag, 0f);
+                gState.TimeSinceLastFlip = 0f;
+                gState.DirectionChangedThisFrame = false;
+                gState.CurrentCharges = maxCharges;
+                gState.MaxCharges = maxCharges;
+                gState.RechargeTimer = 0f;
+                em.SetComponentData(gravEntities[0], gState);
+            }
+            gravQuery.Dispose();
 
             var learnQuery = em.CreateEntityQuery(typeof(DroneLearningState));
             if (learnQuery.CalculateEntityCount() > 0)
@@ -582,6 +622,12 @@ namespace GravityDrift
                     em.SetComponentData(crateEntity, new ResetableEntity { SpawnPosition = tf.position, SpawnRotation = tf.rotation, PendingReset = false });
                     em.SetComponentData(crateEntity, LocalTransform.FromPositionRotation(tf.position, tf.rotation));
                     em.SetComponentData(crateEntity, new PhysicsVelocity { Linear = float3.zero, Angular = float3.zero });
+
+                    var impactRelay = kit.GetComponent<CargoCrateImpactRelay>();
+                    if (impactRelay == null) impactRelay = kit.gameObject.AddComponent<CargoCrateImpactRelay>();
+                    impactRelay.CrateEntity = crateEntity;
+                    impactRelay.PrePhysicsVelocity = Vector3.zero;
+                    impactRelay.ImpactFrozen = false;
 
                     syncList.Add((crateEntity, tf, rb));
                 }
@@ -816,6 +862,7 @@ namespace GravityDrift
                 for (int r = 0; r < renderers.Length; r++)
                 {
                     renderers[r].GetPropertyBlock(playerPropBlock);
+                    playerPropBlock.SetTexture("_EmissionMap", Texture2D.whiteTexture);
                     playerPropBlock.SetColor("_BaseColor", baseTint);
                     playerPropBlock.SetColor("_Color", baseTint);
                     playerPropBlock.SetColor("_EmissionColor", emissive);
@@ -840,10 +887,12 @@ namespace GravityDrift
 
             var objQ = em.CreateEntityQuery(typeof(LevelObjectiveState));
             bool freezeCratePhysics = false;
+            bool inStartupGrace = false;
             if (objQ.CalculateEntityCount() > 0)
             {
                 using var oArr = objQ.ToComponentDataArray<LevelObjectiveState>(Allocator.Temp);
                 freezeCratePhysics = oArr[0].IsRespawning || oArr[0].IsRunOver || oArr[0].IsRunCompleted;
+                inStartupGrace = oArr[0].LevelStartGraceTimer > 0f;
             }
             objQ.Dispose();
 
@@ -906,11 +955,29 @@ namespace GravityDrift
                     }
                 }
 
+                Vector3 preClampVel = (rb != null) ? rb.linearVelocity : Vector3.zero;
+                if (freezeCratePhysics) preClampVel = Vector3.zero;
+
                 Vector3 pos = tf.position;
-                Vector3 vel = (rb != null) ? rb.linearVelocity : Vector3.zero;
+                Vector3 vel = preClampVel;
                 ClampVectorInsideBounds(ref pos, ref vel, bounds, 0.44f);
                 tf.position = pos;
                 if (rb != null) rb.linearVelocity = vel;
+
+                if (em.HasComponent<CargoCrateTag>(e))
+                {
+                    var impactRelay = tf.GetComponent<CargoCrateImpactRelay>();
+                    if (impactRelay != null)
+                    {
+                        impactRelay.CrateEntity = e;
+                        impactRelay.ImpactFrozen = freezeCratePhysics || inStartupGrace;
+                        impactRelay.PrePhysicsVelocity = (freezeCratePhysics || inStartupGrace) ? Vector3.zero : preClampVel;
+                    }
+
+                    var cTag = em.GetComponentData<CargoCrateTag>(e);
+                    cTag.PrePhysicsVelocity = (freezeCratePhysics || inStartupGrace) ? float3.zero : (float3)preClampVel;
+                    em.SetComponentData(e, cTag);
+                }
 
                 em.SetComponentData(e, LocalTransform.FromPositionRotation(tf.position, tf.rotation));
                 em.SetComponentData(e, new PhysicsVelocity { Linear = (float3)vel, Angular = float3.zero });
@@ -978,8 +1045,13 @@ namespace GravityDrift
                 if (lvl.IsRunOver && !isDeathSequenceRunning)
                 {
                     objQuery.Dispose();
-                    SessionReportRecorder.Instance?.CheckAndRecordTagDeaths();
-                    GameUIManager.Instance?.OpenRunOverScreen(isVictory: false);
+                    if (!runOverOpenedForRun)
+                    {
+                        runOverOpenedForRun = true;
+                        SessionReportRecorder.Instance?.CheckAndRecordTagDeaths();
+                        SessionReportRecorder.Instance?.ArchiveRunEndIfPending("RunOver");
+                        GameUIManager.Instance?.OpenRunOverScreen(isVictory: false);
+                    }
                     return;
                 }
                 if (lvl.RoomCleared && !lvl.IsRunCompleted)
@@ -991,6 +1063,7 @@ namespace GravityDrift
                         lvl.IsRunCompleted = true;
                         em.SetComponentData(objEntity, lvl);
                         objQuery.Dispose();
+                        runOverOpenedForRun = true;
                         GameUIManager.Instance?.OpenRunOverScreen(isVictory: true);
                         return;
                     }
@@ -1142,11 +1215,7 @@ namespace GravityDrift
                     }
 
                     var swLight = tf.GetComponentInChildren<Light>();
-                    if (swLight != null)
-                    {
-                        swLight.color = targetColor;
-                        swLight.intensity = pSwitch.IsPressed ? 4.8f : (3.6f * pulse);
-                    }
+                    if (swLight != null) swLight.enabled = false;
 
                     if (pSwitch.IsPressed)
                     {
@@ -1158,7 +1227,7 @@ namespace GravityDrift
                 else if (em.HasComponent<ExitAirlockTag>(e))
                 {
                     var airlock = em.GetComponentData<ExitAirlockTag>(e);
-                    // Keep airlock stationary on right wall with smooth 0.5..1.0 sine-wave emission intensity
+                    // Keep airlock stationary on right wall with smooth 0.5..1.0 sine-wave HDR emission cue
                     tf.position = airlock.ClosedPosition;
                     float sine01 = 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * (airlock.IsUnlocked ? 4.8f : 2.6f));
                     float intensity05To1 = Mathf.Lerp(0.5f, 1.0f, sine01);
@@ -1180,11 +1249,7 @@ namespace GravityDrift
                     }
 
                     var airLight = tf.GetComponentInChildren<Light>();
-                    if (airLight != null)
-                    {
-                        airLight.color = stateCol;
-                        airLight.intensity = intensity05To1 * (airlock.IsUnlocked ? 3.8f : 2.6f);
-                    }
+                    if (airLight != null) airLight.enabled = false;
                 }
             }
         }
@@ -1304,7 +1369,7 @@ namespace GravityDrift
             rt.offsetMax = Vector2.zero;
 
             fadeOverlayImg = imgGo.GetComponent<Image>();
-            fadeOverlayImg.color = new Color(11f / 255f, 14f / 255f, 20f / 255f, 0f);
+            fadeOverlayImg.color = new Color(0f, 0f, 0f, 0f);
             fadeOverlayImg.raycastTarget = false;
             fadeCanvas.gameObject.SetActive(false);
         }
@@ -1435,7 +1500,9 @@ namespace GravityDrift
                 isDeathSequenceRunning = false;
                 deathRespawnCoroutine = null;
                 InputHelper.IsInputFrozen = false;
+                runOverOpenedForRun = true;
                 SessionReportRecorder.Instance?.CheckAndRecordTagDeaths();
+                SessionReportRecorder.Instance?.ArchiveRunEndIfPending("RunOver");
                 GameUIManager.Instance?.OpenRunOverScreen(isVictory: false);
                 yield break;
             }
