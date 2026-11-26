@@ -1,0 +1,6 @@
+input_index,elapsed_sec,level_index,input_source,player_action,drone_action,prior_entropy,posterior_entropy,entropy_reduction,confidence,top_cluster_confidence,astar_nodes,replan_latency_ms,hazards_avoided,drone_improvement_pct,gravity_flips_total,jetpack_overloads_total
+1,0.249,1,DualSense_Touchpad,Idle,Patrol,3.9448,3.8008,0.1440,0.1600,0.8496,0,0.0000,0,11.53,1,0
+2,0.296,1,PC_WASD,Idle,Pursue,3.6052,3.5418,0.0634,0.1952,0.9066,0,0.0000,0,11.53,1,0
+3,0.367,1,DualSense_Stick,Idle,Pursue,3.4958,3.4596,0.0362,0.2055,0.9227,0,0.0000,0,17.07,1,1
+4,0.508,2,PC_ArrowsOrKeys,Idle,Pursue,3.6081,3.4861,0.1220,0.2001,0.8872,0,0.0000,0,27.60,2,1
+5,0.551,2,DualSense_Stick,Idle,Pursue,3.1492,3.1069,0.0423,0.2687,0.9550,0,0.0000,0,27.60,2,1

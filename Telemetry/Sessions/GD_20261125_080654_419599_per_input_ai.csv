@@ -1,0 +1,2 @@
+input_index,elapsed_sec,level_index,input_source,player_action,drone_action,prior_entropy,posterior_entropy,entropy_reduction,confidence,top_cluster_confidence,astar_nodes,replan_latency_ms,hazards_avoided,drone_improvement_pct,gravity_flips_total,jetpack_overloads_total,gravity_predictability,movement_predictability,pattern_adaptation_pct
+1,0.372,6,PC_WASD,Idle,Pursue,3.6504,3.5787,0.0717,0.1938,0.9033,0,0.0000,0,69.42,0,0,0.0000,0.0500,4.00

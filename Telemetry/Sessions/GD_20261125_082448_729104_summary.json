@@ -1,0 +1,43 @@
+{
+  "session_id": "GD_20261125_082448_729104",
+  "started_utc": "2026-11-25T08:24:48.0987343Z",
+  "ended_utc": "2026-11-25T08:26:41.3348991Z",
+  "duration_sec": 113.23,
+  "levels_played_count": 5,
+  "max_run_levels": 20,
+  "levels_cleared_count": 4,
+  "max_lives": 5,
+  "lives_remaining": 0,
+  "run_completed": false,
+  "total_attempts": 9,
+  "total_deaths": 5,
+  "overall_death_rate_pct": 55.56,
+  "initial_drone_improvement_pct": 15.19,
+  "final_drone_improvement_pct": 62.49,
+  "improvement_delta_pct": 47.30,
+  "final_pattern_adaptation_pct": 7.21,
+  "initial_crate_dodge_skill": 0.1920,
+  "final_crate_dodge_skill": 0.6620,
+  "mean_entropy_reduction_bits": -0.0160,
+  "total_gravity_flips": 62,
+  "total_jetpack_overloads": 13,
+  "total_boost_sec": 0.00,
+  "total_inputs_logged": 349,
+  "per_level_death_rates": [
+    { "level_index": 1, "attempts": 2, "deaths": 1, "clears": 1, "death_rate_pct": 50.00 },
+    { "level_index": 2, "attempts": 2, "deaths": 1, "clears": 1, "death_rate_pct": 50.00 },
+    { "level_index": 3, "attempts": 1, "deaths": 0, "clears": 1, "death_rate_pct": 0.00 },
+    { "level_index": 4, "attempts": 2, "deaths": 1, "clears": 1, "death_rate_pct": 50.00 },
+    { "level_index": 5, "attempts": 2, "deaths": 2, "clears": 0, "death_rate_pct": 100.00 }
+  ],
+  "input_source_counts": {
+    "DualSense_DPad": 0,
+    "DualSense_R2": 0,
+    "DualSense_RStick": 0,
+    "DualSense_Stick": 287,
+    "DualSense_Touchpad": 62,
+    "PC_ArrowsOrKeys": 0,
+    "PC_Boost": 0,
+    "PC_WASD": 0
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "session_id": "GD_20261125_080941_23333",
+  "started_utc": "2026-11-25T08:09:41.6741073Z",
+  "ended_utc": "2026-11-25T08:10:36.5863456Z",
+  "duration_sec": 54.91,
+  "levels_played_count": 1,
+  "max_run_levels": 20,
+  "levels_cleared_count": 1,
+  "max_lives": 5,
+  "lives_remaining": 3,
+  "run_completed": true,
+  "total_attempts": 3,
+  "total_deaths": 2,
+  "overall_death_rate_pct": 66.67,
+  "initial_drone_improvement_pct": 12.00,
+  "final_drone_improvement_pct": 24.73,
+  "improvement_delta_pct": 12.73,
+  "final_pattern_adaptation_pct": 18.49,
+  "initial_crate_dodge_skill": 0.1800,
+  "final_crate_dodge_skill": 0.0800,
+  "mean_entropy_reduction_bits": -0.0086,
+  "total_gravity_flips": 18,
+  "total_jetpack_overloads": 8,
+  "total_boost_sec": 0.00,
+  "total_inputs_logged": 153,
+  "per_level_death_rates": [
+    { "level_index": 20, "attempts": 3, "deaths": 2, "clears": 1, "death_rate_pct": 66.67 }
+  ],
+  "input_source_counts": {
+    "DualSense_DPad": 0,
+    "DualSense_R2": 0,
+    "DualSense_RStick": 18,
+    "DualSense_Stick": 126,
+    "DualSense_Touchpad": 0,
+    "PC_ArrowsOrKeys": 0,
+    "PC_Boost": 0,
+    "PC_WASD": 9
+  }
+}
