@@ -7,8 +7,8 @@ on:
 
 jobs:
   build-windows:
-    name: Build StandaloneWindows64
-    runs-on: ubuntu-latest
+    name: Build StandaloneWindows64 (IL2CPP)
+    runs-on: windows-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -19,9 +19,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: Library
-          key: Library-6000.6.10f1-StandaloneWindows64-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
+          key: Library-6000.6.11f1-StandaloneWindows64-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
           restore-keys: |
-            Library-6000.6.10f1-StandaloneWindows64-
+            Library-6000.6.11f1-StandaloneWindows64-
 
       - name: Build Unity project (StandaloneWindows64)
         uses: game-ci/unity-builder@v4
@@ -31,7 +31,7 @@ jobs:
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
           targetPlatform: StandaloneWindows64
-          unityVersion: auto
+          unityVersion: 6000.6.11f1
           buildName: GravityDrift
           customParameters: -nographics
 
